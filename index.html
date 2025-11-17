@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Operação Natal</title>
+    <title>Dashboard Operação Natal - PM</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
@@ -179,39 +179,42 @@
             font-size: 14px;
             white-space: pre-wrap;
             text-align: left;
-            max-height: 300px;
-            overflow-y: auto;
         }
         
         .success {
-            background: #d1edff;
-            border-color: #b3d9ff;
+            background: #e8f5e8;
+            border-color: #4caf50;
+            color: #2e7d32;
         }
         
         .error {
-            background: #ffcccc;
-            border-color: #ff9999;
+            background: #ffebee;
+            border-color: #f44336;
+            color: #c62828;
         }
     </style>
 </head>
 <body>
     <div class="dashboard-header">
         <h1 class="dashboard-title">Operação Natal - Dashboard de Policiamento</h1>
-        <p class="dashboard-subtitle">Carregue a planilha atualizada para visualizar os dados</p>
+        <p class="dashboard-subtitle">Comando Geral da PM - Visualização em Tempo Real</p>
     </div>
     
     <div class="upload-section">
-        <h3>📤 Carregar Nova Planilha</h3>
+        <h3>📤 Carregar Planilha de Dados</h3>
         <input type="file" id="fileInput" class="file-input" accept=".xlsx, .xls">
         <br>
         <button class="btn" onclick="processFile()">Atualizar Dashboard</button>
         <button class="btn btn-secondary" onclick="loadSampleData()">Usar Dados de Exemplo</button>
         
-        <div id="debugInfo" class="debug-info"></div>
-        
-        <p style="margin-top: 10px; font-size: 14px; color: #666;">
-            Suporta qualquer planilha com colunas similares às originais
-        </p>
+        <div id="debugInfo" class="debug-info">
+👋 Bem-vindo ao Dashboard Operação Natal!
+
+Como usar:
+1. Clique em "Usar Dados de Exemplo" para testar
+2. Ou carregue sua planilha Excel
+3. Compartilhe o link com sua equipe
+        </div>
     </div>
     
     <div id="dashboard-content" class="hidden">
@@ -265,15 +268,13 @@
                         <th>Local de Atuação</th>
                     </tr>
                 </thead>
-                <tbody id="table-body">
-                    <!-- Dados serão preenchidos via JavaScript -->
-                </tbody>
+                <tbody id="table-body"></tbody>
             </table>
         </div>
     </div>
     
     <div class="footer">
-        <p>Dashboard Operação Natal - Versão Corrigida</p>
+        <p>Dashboard Operação Natal - Desenvolvido para Acompanhamento Operacional</p>
     </div>
 
     <script>
@@ -282,16 +283,13 @@
         function showDebugInfo(message, type = 'info') {
             const debugDiv = document.getElementById('debugInfo');
             debugDiv.innerHTML = message;
-            debugDiv.className = 'debug-info';
-            if (type === 'success') debugDiv.classList.add('success');
-            if (type === 'error') debugDiv.classList.add('error');
+            debugDiv.className = 'debug-info ' + type;
             debugDiv.style.display = 'block';
         }
         
         function loadSampleData() {
-            showDebugInfo('Carregando dados de exemplo...', 'info');
+            showDebugInfo('🔄 Carregando dados de exemplo...', 'info');
             
-            // Dados de exemplo baseados na planilha original
             const sampleData = [
                 { opm: "BTL LESTE", viatura: "VTR 1090", graduacao: "1° TEN", nome: "MARCLEUTON", local: "área comercial" },
                 { opm: "BTL LESTE", viatura: "VTR 1090", graduacao: "AL.OF", nome: "C. FARIAS", local: "área comercial" },
@@ -322,79 +320,68 @@
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
                     
-                    showDebugInfo('✅ Arquivo lido com sucesso!\nPlanilhas encontradas: ' + workbook.SheetNames.join(', '), 'success');
-                    
-                    // Tenta todas as planilhas
                     let allData = [];
-                    let sheetInfo = '';
                     
-                    workbook.SheetNames.forEach((sheetName, index) => {
+                    workbook.SheetNames.forEach((sheetName) => {
                         const worksheet = workbook.Sheets[sheetName];
                         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-                        sheetInfo += `\n\nPlanilha "${sheetName}": ${jsonData.length} linhas, ${jsonData[0] ? jsonData[0].length : 0} colunas`;
                         
                         if (jsonData.length > 1) {
-                            const processedData = processSheetData(jsonData, sheetName);
+                            const processedData = processSheetData(jsonData);
                             allData = allData.concat(processedData);
                         }
                     });
                     
-                    showDebugInfo(`📊 Análise das planilhas:${sheetInfo}\n\n✅ Total de registros encontrados: ${allData.length}`, 'success');
-                    
                     if (allData.length === 0) {
-                        showDebugInfo('❌ Nenhum dado válido encontrado. Mostrando dados de exemplo.', 'error');
-                        loadSampleData();
+                        showDebugInfo('❌ Nenhum dado válido encontrado.', 'error');
                         return;
                     }
                     
                     processExcelData(allData);
+                    showDebugInfo('✅ Dashboard atualizado com sucesso!', 'success');
                     
                 } catch (error) {
-                    console.error('Erro ao processar arquivo:', error);
-                    showDebugInfo('❌ ERRO: ' + error.message + '\n\nCarregando dados de exemplo...', 'error');
-                    loadSampleData();
+                    showDebugInfo('❌ ERRO: ' + error.message, 'error');
                 }
-            };
-            
-            reader.onerror = function() {
-                showDebugInfo('❌ Erro na leitura do arquivo. Carregando dados de exemplo...', 'error');
-                loadSampleData();
             };
             
             reader.readAsArrayBuffer(file);
         }
         
-        function processSheetData(sheetData, sheetName) {
+        function processSheetData(sheetData) {
             const data = [];
-            
             if (sheetData.length < 2) return data;
             
             const headers = sheetData[0].map(h => h ? h.toString().trim() : '');
             
-            // Encontra colunas por padrões
-            const columnMapping = {
-                opm: findColumnByPattern(headers, ['opm', 'unidade', 'om']),
-                viatura: findColumnByPattern(headers, ['vtr', 'viatura', 'prefixo', 'veículo']),
-                graduacao: findColumnByPattern(headers, ['grad', 'graduacao', 'posto', 'patente']),
-                nome: findColumnByPattern(headers, ['nome', 'militar']),
-                local: findColumnByPattern(headers, ['local', 'área', 'area', 'endereço'])
+            const findColumn = (patterns) => {
+                for (let pattern of patterns) {
+                    const index = headers.findIndex(header => 
+                        header && header.toLowerCase().includes(pattern.toLowerCase())
+                    );
+                    if (index !== -1) return index;
+                }
+                return 0;
             };
             
-            // Processa linhas
+            const opmIndex = findColumn(['opm', 'unidade']);
+            const viaturaIndex = findColumn(['vtr', 'viatura', 'prefixo']);
+            const graduacaoIndex = findColumn(['grad', 'graduacao', 'posto']);
+            const nomeIndex = findColumn(['nome', 'militar']);
+            const localIndex = findColumn(['local', 'área', 'area']);
+            
             for (let i = 1; i < sheetData.length; i++) {
                 const row = sheetData[i];
                 if (!row || row.length === 0) continue;
                 
                 const item = {
-                    opm: getCellValue(row, columnMapping.opm),
-                    viatura: getCellValue(row, columnMapping.viatura),
-                    graduacao: getCellValue(row, columnMapping.graduacao),
-                    nome: getCellValue(row, columnMapping.nome),
-                    local: getCellValue(row, columnMapping.local),
-                    sheet: sheetName
+                    opm: row[opmIndex] || '',
+                    viatura: row[viaturaIndex] || '',
+                    graduacao: row[graduacaoIndex] || '',
+                    nome: row[nomeIndex] || '',
+                    local: row[localIndex] || ''
                 };
                 
-                // Adiciona se tiver dados mínimos
                 if (item.nome || item.opm) {
                     data.push(item);
                 }
@@ -403,31 +390,12 @@
             return data;
         }
         
-        function findColumnByPattern(headers, patterns) {
-            for (let pattern of patterns) {
-                const index = headers.findIndex(header => 
-                    header && header.toLowerCase().includes(pattern.toLowerCase())
-                );
-                if (index !== -1) return index;
-            }
-            return 0; // Fallback para primeira coluna
-        }
-        
-        function getCellValue(row, index) {
-            if (index === undefined || index === -1 || !row[index]) return '';
-            return row[index].toString().trim();
-        }
-        
         function processExcelData(data) {
-            // Limpa gráficos anteriores
             Object.values(currentCharts).forEach(chart => {
                 if (chart && chart.destroy) chart.destroy();
             });
             currentCharts = {};
             
-            showDebugInfo(`🎯 Processando ${data.length} registros...`, 'info');
-            
-            // Atualiza KPIs
             document.getElementById('total-militares').textContent = data.length;
             
             const unidades = [...new Set(data.map(item => item.opm))].filter(Boolean);
@@ -439,7 +407,6 @@
             const areas = [...new Set(data.map(item => item.local))].filter(Boolean);
             document.getElementById('total-areas').textContent = areas.length;
             
-            // Preenche tabela
             const tableBody = document.getElementById('table-body');
             tableBody.innerHTML = '';
             data.forEach(item => {
@@ -454,44 +421,33 @@
                 tableBody.appendChild(row);
             });
             
-            // Análise para gráficos
             const graduacaoCount = {};
             const unidadeCount = {};
             const viaturaCount = {};
             const areaCount = {};
             
             data.forEach(item => {
-                // Graduação
                 const grad = item.graduacao || 'Não informado';
                 graduacaoCount[grad] = (graduacaoCount[grad] || 0) + 1;
                 
-                // Unidade
                 const opm = item.opm || 'Não informado';
                 unidadeCount[opm] = (unidadeCount[opm] || 0) + 1;
                 
-                // Viatura
                 const viatura = item.viatura || 'Não informado';
                 let tipoViatura = 'Outros';
                 if (viatura.includes('VTR')) tipoViatura = 'VTR';
                 else if (viatura.includes('POG')) tipoViatura = 'POG';
                 viaturaCount[tipoViatura] = (viaturaCount[tipoViatura] || 0) + 1;
                 
-                // Área
                 const area = item.local || 'Não informado';
                 areaCount[area] = (areaCount[area] || 0) + 1;
             });
             
-            // Mostra dashboard
             document.getElementById('dashboard-content').classList.remove('hidden');
-            
-            // Cria gráficos
             createCharts(graduacaoCount, unidadeCount, viaturaCount, areaCount);
-            
-            showDebugInfo(`✅ Dashboard atualizado com sucesso!\n\n📊 Resumo:\n- ${data.length} militares\n- ${unidades.length} unidades\n- ${viaturas.length} viaturas\n- ${areas.length} áreas`, 'success');
         }
         
         function createCharts(graduacaoCount, unidadeCount, viaturaCount, areaCount) {
-            // Gráfico de Graduação
             const ctx1 = document.getElementById('graduacaoChart').getContext('2d');
             currentCharts.graduacao = new Chart(ctx1, {
                 type: 'doughnut',
@@ -499,17 +455,12 @@
                     labels: Object.keys(graduacaoCount),
                     datasets: [{
                         data: Object.values(graduacaoCount),
-                        backgroundColor: ['#1a3d7c', '#2a9d8f', '#e63946', '#f4a261', '#e9c46a', '#264653'],
+                        backgroundColor: ['#1a3d7c', '#2a9d8f', '#e63946', '#f4a261', '#e9c46a'],
                         borderWidth: 1
                     }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { position: 'right' } }
                 }
             });
             
-            // Gráfico de Unidades
             const ctx2 = document.getElementById('unidadeChart').getContext('2d');
             currentCharts.unidade = new Chart(ctx2, {
                 type: 'bar',
@@ -518,19 +469,16 @@
                     datasets: [{
                         label: 'Militares',
                         data: Object.values(unidadeCount),
-                        backgroundColor: '#1a3d7c',
-                        borderWidth: 1
+                        backgroundColor: '#1a3d7c'
                     }]
                 },
                 options: {
-                    responsive: true,
                     scales: {
                         y: { beginAtZero: true, ticks: { stepSize: 1 } }
                     }
                 }
             });
             
-            // Gráfico de Viaturas
             const ctx3 = document.getElementById('viaturaChart').getContext('2d');
             currentCharts.viatura = new Chart(ctx3, {
                 type: 'pie',
@@ -538,17 +486,11 @@
                     labels: Object.keys(viaturaCount),
                     datasets: [{
                         data: Object.values(viaturaCount),
-                        backgroundColor: ['#1a3d7c', '#e63946', '#2a9d8f'],
-                        borderWidth: 1
+                        backgroundColor: ['#1a3d7c', '#e63946', '#2a9d8f']
                     }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { position: 'bottom' } }
                 }
             });
             
-            // Gráfico de Áreas
             const ctx4 = document.getElementById('areaChart').getContext('2d');
             currentCharts.area = new Chart(ctx4, {
                 type: 'bar',
@@ -557,25 +499,17 @@
                     datasets: [{
                         label: 'Militares',
                         data: Object.values(areaCount),
-                        backgroundColor: '#2a9d8f',
-                        borderWidth: 1
+                        backgroundColor: '#2a9d8f'
                     }]
                 },
                 options: {
                     indexAxis: 'y',
-                    responsive: true,
                     scales: {
                         x: { beginAtZero: true, ticks: { stepSize: 1 } }
                     }
                 }
             });
         }
-        
-        // Inicializa com dados de exemplo
-        window.onload = function() {
-            showDebugInfo('👋 Bem-vindo! Carregue uma planilha ou use os dados de exemplo.', 'info');
-        };
     </script>
 </body>
-
 </html>
