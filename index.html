@@ -602,36 +602,36 @@
                 now.toLocaleDateString('pt-BR', options);
         }
 
-        // FUNÇÃO CORRIGIDA - Processar dados do Excel
-        function processExcelData(data) {
+        // NOVA FUNÇÃO - Processar dados de forma mais simples
+        function processExcelData(jsonData) {
             try {
                 showLoading(true);
                 
-                console.log('Dados brutos do Excel:', data);
+                console.log('Dados recebidos:', jsonData);
                 
-                // Processar dados - método mais flexível
-                currentData = data.map(row => {
-                    // Tentar diferentes nomes de colunas
-                    const opm = row.OPM || row.opm || row['OPM'] || '';
-                    const viatura = row.Viatura || row.viatura || row['Viatura'] || row['Prefixo VTR'] || '';
-                    const graduacao = row.Graduacao || row.graduacao || row['Graduacao'] || row.Grad || '';
-                    const nome = row.Nome || row.nome || row['Nome'] || '';
-                    const local = row.Local || row.local || row['Local'] || '';
+                // Resetar dados atuais
+                currentData = [];
+                
+                // Processar cada linha
+                jsonData.forEach((row, index) => {
+                    // Verificar se a linha tem dados válidos
+                    const opm = row.OPM || row.opm || '';
+                    const viatura = row.Viatura || row.viatura || row['Prefixo VTR'] || '';
+                    const graduacao = row.Graduacao || row.graduacao || row.Grad || '';
+                    const nome = row.Nome || row.nome || '';
+                    const local = row.Local || row.local || '';
                     
-                    return {
-                        OPM: opm,
-                        Viatura: viatura,
-                        Graduacao: graduacao,
-                        Nome: nome,
-                        Local: local
-                    };
-                }).filter(row => 
-                    row.OPM && row.OPM !== '' && 
-                    row.Viatura && row.Viatura !== '' && 
-                    row.Graduacao && row.Graduacao !== '' && 
-                    row.Nome && row.Nome !== '' && 
-                    row.Local && row.Local !== ''
-                );
+                    // Se tiver dados suficientes, adicionar
+                    if (opm && viatura && graduacao && nome && local) {
+                        currentData.push({
+                            OPM: opm,
+                            Viatura: viatura,
+                            Graduacao: graduacao,
+                            Nome: nome,
+                            Local: local
+                        });
+                    }
+                });
                 
                 console.log('Dados processados:', currentData);
                 
@@ -639,8 +639,8 @@
                     throw new Error('Nenhum dado válido encontrado. Verifique se a planilha tem as colunas: OPM, Viatura, Graduacao, Nome, Local');
                 }
                 
-                // Atualizar dashboard
-                updateDashboard();
+                // Forçar atualização do dashboard
+                forceDashboardUpdate();
                 showAlert(`✅ Dados carregados com sucesso! ${currentData.length} registros processados.`);
                 showLoading(false);
                 
@@ -651,71 +651,51 @@
             }
         }
 
-        // Calcular métricas
-        function calculateMetrics() {
+        // FUNÇÃO FORÇADA para atualizar dashboard
+        function forceDashboardUpdate() {
+            console.log('FORÇANDO atualização do dashboard com', currentData.length, 'registros');
+            
+            // Atualizar métricas básicas
+            updateBasicMetrics();
+            
+            // Atualizar tabela
+            updateDetailsTable();
+            
+            // Atualizar locais
+            updateLocaisDisplay();
+            
+            // Atualizar gráficos
+            updateAllCharts();
+            
+            // Animar números
+            animateMetrics();
+        }
+
+        // Atualizar métricas básicas
+        function updateBasicMetrics() {
             const viaturas = [...new Set(currentData.map(row => row.Viatura))].length;
             const efetivo = currentData.length;
             const opms = [...new Set(currentData.map(row => row.OPM))].length;
             const locais = [...new Set(currentData.map(row => row.Local))].length;
             
-            return { viaturas, efetivo, opms, locais };
+            document.getElementById('totalViaturas').textContent = viaturas;
+            document.getElementById('efetivoAtivo').textContent = efetivo;
+            document.getElementById('opmsAtuacao').textContent = opms;
+            document.getElementById('locaisAtuacao').textContent = locais;
+            
+            console.log('Métricas atualizadas:', { viaturas, efetivo, opms, locais });
         }
 
-        // Calcular distribuições para gráficos
-        function calculateDistributions() {
-            const opmCount = {};
-            const gradCount = {};
-            const localCount = {};
-            
-            currentData.forEach(row => {
-                // OPM
-                opmCount[row.OPM] = (opmCount[row.OPM] || 0) + 1;
-                
-                // Graduação
-                gradCount[row.Graduacao] = (gradCount[row.Graduacao] || 0) + 1;
-                
-                // Local
-                localCount[row.Local] = (localCount[row.Local] || 0) + 1;
-            });
-            
-            return { opmCount, gradCount, localCount };
-        }
-
-        // Atualizar dashboard
-        function updateDashboard() {
-            console.log('Atualizando dashboard com:', currentData.length, 'registros');
-            
-            if (currentData.length === 0) {
-                // Resetar tudo se não há dados
-                document.getElementById('totalViaturas').textContent = '0';
-                document.getElementById('efetivoAtivo').textContent = '0';
-                document.getElementById('opmsAtuacao').textContent = '0';
-                document.getElementById('locaisAtuacao').textContent = '0';
-                updateDetailsTable();
-                updateLocaisGrid({});
-                return;
-            }
-            
-            const metrics = calculateMetrics();
-            const distributions = calculateDistributions();
-            
-            // Atualizar métricas
-            document.getElementById('totalViaturas').textContent = metrics.viaturas;
-            document.getElementById('efetivoAtivo').textContent = metrics.efetivo;
-            document.getElementById('opmsAtuacao').textContent = metrics.opms;
-            document.getElementById('locaisAtuacao').textContent = metrics.locais;
-            
-            // Atualizar componentes
-            updateDetailsTable();
-            updateLocaisGrid(distributions.localCount);
-            updateCharts(distributions);
-            animateMetrics();
-        }
-
-        // Atualizar grid de locais
-        function updateLocaisGrid(localCount) {
+        // Atualizar display de locais
+        function updateLocaisDisplay() {
             const locaisGrid = document.getElementById('locaisGrid');
             locaisGrid.innerHTML = '';
+            
+            // Contar locais
+            const localCount = {};
+            currentData.forEach(row => {
+                localCount[row.Local] = (localCount[row.Local] || 0) + 1;
+            });
             
             const locaisArray = Object.entries(localCount)
                 .sort((a, b) => b[1] - a[1])
@@ -770,21 +750,30 @@
             });
         }
 
-        // Atualizar gráficos
-        function updateCharts(distributions) {
+        // Atualizar todos os gráficos
+        function updateAllCharts() {
             // Destruir gráficos existentes
             if (charts.opm) charts.opm.destroy();
             if (charts.graduacao) charts.graduacao.destroy();
+            
+            // Calcular distribuições
+            const opmCount = {};
+            const gradCount = {};
+            
+            currentData.forEach(row => {
+                opmCount[row.OPM] = (opmCount[row.OPM] || 0) + 1;
+                gradCount[row.Graduacao] = (gradCount[row.Graduacao] || 0) + 1;
+            });
             
             // Gráfico de OPM
             const opmCtx = document.getElementById('opmChart').getContext('2d');
             charts.opm = new Chart(opmCtx, {
                 type: 'bar',
                 data: {
-                    labels: Object.keys(distributions.opmCount),
+                    labels: Object.keys(opmCount),
                     datasets: [{
                         label: 'Efetivo por OPM',
-                        data: Object.values(distributions.opmCount),
+                        data: Object.values(opmCount),
                         backgroundColor: chartColors,
                         borderColor: chartColors.map(color => color.replace('0.8', '1')),
                         borderWidth: 2,
@@ -807,9 +796,9 @@
             charts.graduacao = new Chart(gradCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: Object.keys(distributions.gradCount),
+                    labels: Object.keys(gradCount),
                     datasets: [{
-                        data: Object.values(distributions.gradCount),
+                        data: Object.values(gradCount),
                         backgroundColor: chartColors,
                         borderColor: 'white',
                         borderWidth: 3
@@ -856,7 +845,7 @@
             showLoading(true);
             setTimeout(() => {
                 currentData = sampleData;
-                updateDashboard();
+                forceDashboardUpdate();
                 showAlert('✅ Dados de exemplo carregados com sucesso!');
                 showLoading(false);
             }, 500);
@@ -883,7 +872,7 @@
         // Limpar dados
         function clearData() {
             currentData = [];
-            updateDashboard();
+            forceDashboardUpdate();
             showAlert('🗑️ Dados limpos com sucesso!');
         }
 
@@ -894,21 +883,21 @@
                 `Última atualização: ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR')}`;
         }
 
-        // EVENT LISTENER CORRIGIDO para upload de arquivo
+        // EVENT LISTENER SIMPLIFICADO para upload
         document.getElementById('fileInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
             
-            console.log('Arquivo selecionado:', file.name);
+            console.log('📁 Arquivo selecionado:', file.name);
             
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    console.log('Iniciando leitura do arquivo...');
+                    console.log('📊 Lendo arquivo Excel...');
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
                     
-                    console.log('Planilhas encontradas:', workbook.SheetNames);
+                    console.log('📋 Planilhas encontradas:', workbook.SheetNames);
                     
                     // Usar a primeira planilha
                     const firstSheetName = workbook.SheetNames[0];
@@ -916,24 +905,24 @@
                     
                     // Converter para JSON
                     const jsonData = XLSX.utils.sheet_to_json(worksheet);
-                    console.log('Dados convertidos:', jsonData);
+                    console.log('📄 Dados convertidos:', jsonData);
                     
                     if (jsonData.length === 0) {
-                        throw new Error('A planilha está vazia');
+                        throw new Error('A planilha está vazia ou não contém dados');
                     }
                     
                     // Processar dados
                     processExcelData(jsonData);
                     
                 } catch (error) {
-                    console.error('Erro na leitura:', error);
+                    console.error('❌ Erro na leitura:', error);
                     showAlert('❌ Erro ao ler arquivo: ' + error.message, 'error');
                     showLoading(false);
                 }
             };
             
             reader.onerror = function(error) {
-                console.error('Erro no FileReader:', error);
+                console.error('❌ Erro no FileReader:', error);
                 showAlert('❌ Erro ao ler o arquivo selecionado', 'error');
                 showLoading(false);
             };
@@ -946,7 +935,8 @@
             updateCurrentDate();
             updateDateTime();
             setInterval(updateDateTime, 60000);
-            // Não carregar dados de exemplo automaticamente
+            // Carregar dados de exemplo automaticamente para demonstração
+            loadSampleData();
         });
     </script>
 </body>
