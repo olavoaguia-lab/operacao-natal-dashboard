@@ -3,20 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard PM - Controle de Efetivo</title>
+    <title>Dashboard Zona Leste - 1º Turno</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: #333;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
@@ -26,566 +24,527 @@
             margin: 0 auto;
         }
 
-        header {
+        .header {
             text-align: center;
-            margin-bottom: 30px;
             color: white;
+            margin-bottom: 30px;
             padding: 20px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
         }
 
-        h1 {
-            font-size: 2.5rem;
+        .header h1 {
+            font-size: 2.2rem;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
 
-        .subtitle {
-            font-size: 1.2rem;
+        .header .date {
+            font-size: 1.1rem;
             opacity: 0.9;
         }
 
-        .card {
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
             background: white;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-left: 5px solid #667eea;
         }
 
-        .card:hover {
+        .metric-card:hover {
             transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.15);
         }
 
-        .card h2 {
-            color: #1e3c72;
-            margin-bottom: 15px;
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+        }
+
+        .metric-label {
+            font-size: 1rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
             border-bottom: 2px solid #f0f0f0;
             padding-bottom: 10px;
         }
 
-        .controls {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-primary {
-            background: #4CAF50;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #45a049;
-            transform: scale(1.05);
-        }
-
-        .btn-secondary {
-            background: #2196F3;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #0b7dda;
-            transform: scale(1.05);
-        }
-
-        .file-input {
-            display: none;
-        }
-
-        .file-label {
-            background: #FF9800;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 5px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .file-label:hover {
-            background: #e68900;
-            transform: scale(1.05);
-        }
-
-        .dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .chart-container {
+        .chart-wrapper {
             position: relative;
             height: 300px;
             width: 100%;
         }
 
         .data-table {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            overflow-x: auto;
+        }
+
+        .data-table h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
-        }
-
-        .data-table th, .data-table td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .data-table th {
-            background-color: #f8f9fa;
-            font-weight: bold;
-            color: #1e3c72;
-        }
-
-        .data-table tr:hover {
-            background-color: #f5f5f5;
-        }
-
-        .debug-info {
-            background: #ffebee;
-            color: #c62828;
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 20px;
-            display: none;
-            border-left: 4px solid #f44336;
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .stat-value {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #1e3c72;
-            margin: 10px 0;
-        }
-
-        .stat-label {
-            color: #666;
             font-size: 0.9rem;
         }
 
-        footer {
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .footer {
             text-align: center;
             color: white;
-            margin-top: 30px;
             padding: 20px;
+            font-size: 0.9rem;
             opacity: 0.8;
         }
 
         @media (max-width: 768px) {
-            .controls {
-                flex-direction: column;
+            .header h1 {
+                font-size: 1.8rem;
             }
             
-            .btn, .file-label {
-                width: 100%;
-                justify-content: center;
+            .metrics-grid {
+                grid-template-columns: 1fr;
             }
             
-            h1 {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-wrapper {
+                height: 250px;
+            }
+            
+            .metric-value {
                 font-size: 2rem;
             }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .metric-card, .chart-container, .data-table {
+                padding: 15px;
+            }
+            
+            .chart-wrapper {
+                height: 200px;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.1rem;
+            padding: 40px;
+        }
+
+        .highlight {
+            color: #667eea;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>Dashboard PM - Controle de Efetivo</h1>
-            <p class="subtitle">Sistema de monitoramento e análise de dados operacionais</p>
-        </header>
-
-        <div class="controls">
-            <button class="btn btn-primary" onclick="loadSampleData()">
-                <i>📊</i> Carregar Dados de Exemplo
-            </button>
-            <input type="file" id="fileInput" class="file-input" accept=".xlsx, .xls">
-            <label for="fileInput" class="file-label">
-                <i>📁</i> Carregar Arquivo Excel
-            </label>
-            <button class="btn btn-secondary" onclick="exportData()">
-                <i>💾</i> Exportar Dados
-            </button>
+        <div class="header">
+            <h1>📊 Dashboard Zona Leste - 1º Turno</h1>
+            <div class="date" id="currentDate">Carregando dados...</div>
         </div>
 
-        <div class="stats">
-            <div class="stat-card">
-                <div class="stat-label">Total de Viaturas</div>
-                <div class="stat-value" id="totalVehicles">0</div>
+        <div class="metrics-grid" id="metricsGrid">
+            <div class="metric-card">
+                <div class="metric-label">Total de Viaturas</div>
+                <div class="metric-value" id="totalViaturas">8</div>
+                <div class="metric-subtitle">Operacionais</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">Efetivo Ativo</div>
-                <div class="stat-value" id="totalPersonnel">0</div>
+            
+            <div class="metric-card">
+                <div class="metric-label">Efetivo Ativo</div>
+                <div class="metric-value" id="efetivoAtivo">39</div>
+                <div class="metric-subtitle">Policiais</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">OPMs com Atuação</div>
-                <div class="stat-value" id="totalOPMs">0</div>
+            
+            <div class="metric-card">
+                <div class="metric-label">OPMs com Atuação</div>
+                <div class="metric-value" id="opmsAtuacao">7</div>
+                <div class="metric-subtitle">Unidades</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">Locais de Atuação</div>
-                <div class="stat-value" id="totalLocations">0</div>
+            
+            <div class="metric-card">
+                <div class="metric-label">Locais de Atuação</div>
+                <div class="metric-value" id="locaisAtuacao">9</div>
+                <div class="metric-subtitle">Áreas</div>
             </div>
         </div>
 
-        <div class="dashboard">
-            <div class="card">
-                <h2>Distribuição por OPM</h2>
-                <div class="chart-container">
+        <div class="charts-grid">
+            <div class="chart-container">
+                <div class="chart-title">Distribuição por OPM</div>
+                <div class="chart-wrapper">
                     <canvas id="opmChart"></canvas>
                 </div>
             </div>
-            <div class="card">
-                <h2>Distribuição por Graduação</h2>
-                <div class="chart-container">
-                    <canvas id="graduationChart"></canvas>
+            
+            <div class="chart-container">
+                <div class="chart-title">Distribuição por Graduação</div>
+                <div class="chart-wrapper">
+                    <canvas id="graduacaoChart"></canvas>
                 </div>
             </div>
-            <div class="card">
-                <h2>Locais de Atuação</h2>
-                <div class="chart-container">
-                    <canvas id="locationChart"></canvas>
+            
+            <div class="chart-container">
+                <div class="chart-title">Locais de Atuação</div>
+                <div class="chart-wrapper">
+                    <canvas id="locaisChart"></canvas>
                 </div>
             </div>
         </div>
 
-        <div class="card">
-            <h2>Dados Detalhados</h2>
-            <div class="table-container">
-                <table class="data-table" id="dataTable">
-                    <thead>
-                        <tr>
-                            <th>OPM</th>
-                            <th>Viatura</th>
-                            <th>Graduação</th>
-                            <th>Nome</th>
-                            <th>Local</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                        <!-- Dados serão inseridos aqui via JavaScript -->
-                    </tbody>
-                </table>
-            </div>
+        <div class="data-table">
+            <h3>Resumo Operacional por OPM</h3>
+            <table id="resumoTable">
+                <thead>
+                    <tr>
+                        <th>OPM</th>
+                        <th>Efetivo</th>
+                        <th>Viaturas</th>
+                        <th>Principais Locais</th>
+                    </tr>
+                </thead>
+                <tbody id="resumoTableBody">
+                    <!-- Dados serão preenchidos via JavaScript -->
+                </tbody>
+            </table>
         </div>
 
-        <div class="debug-info" id="debugInfo">
-            <!-- Mensagens de debug serão exibidas aqui -->
+        <div class="footer">
+            <p>Dashboard Operacional - Zona Leste | Atualizado em <span id="updateTime"></span></p>
+            <p>Desenvolvido para acompanhamento do 1º Turno</p>
         </div>
-
-        <footer>
-            <p>Sistema de Dashboard PM &copy; 2023 - Desenvolvido para controle operacional</p>
-        </footer>
     </div>
 
     <script>
-        let currentCharts = {};
+        // Dados baseados na planilha fornecida
+        const dashboardData = {
+            metrics: {
+                totalViaturas: 8,
+                efetivoAtivo: 39,
+                opmsAtuacao: 7,
+                locaisAtuacao: 9
+            },
+            opmDistribution: {
+                labels: ['BTL LESTE', '4ª CICOM', '9ª CICOM', '11ª CICOM', '14ª CICOM', '25ª CICOM', '28ª CICOM', '29ª CICOM', '30ª CICOM'],
+                data: [21, 2, 2, 2, 6, 2, 2, 2, 2]
+            },
+            graduacaoDistribution: {
+                labels: ['Sd PM', 'Cb PM', '3º Sgt PM', '1º Sgt PM', 'Cad 1 PM', '2º Sgt PM', 'ST PM', 'Sgt PM', 'Cap PM'],
+                data: [16, 8, 6, 4, 2, 1, 1, 1, 1]
+            },
+            locaisDistribution: {
+                labels: ['Área Comercial', 'Fuxico', 'Shoppings', 'Bancos', 'Avenidas'],
+                data: [14, 8, 6, 5, 6]
+            },
+            resumoOperacional: [
+                { opm: 'BTL LESTE', efetivo: 21, viaturas: 4, locais: 'Área Comercial, Shoppings, Bancos' },
+                { opm: '14ª CICOM', efetivo: 6, viaturas: 3, locais: 'Fuxico - Autaz Mirim' },
+                { opm: '4ª CICOM', efetivo: 2, viaturas: 1, locais: 'Área Comercial' },
+                { opm: '9ª CICOM', efetivo: 2, viaturas: 1, locais: 'Av. Grand Circular' },
+                { opm: '11ª CICOM', efetivo: 2, viaturas: 1, locais: 'Área Comercial' },
+                { opm: '25ª CICOM', efetivo: 2, viaturas: 1, locais: 'Área Comercial' },
+                { opm: '28ª CICOM', efetivo: 2, viaturas: 1, locais: 'Av. Getúlio Vargas' },
+                { opm: '29ª CICOM', efetivo: 2, viaturas: 1, locais: 'Av. Rio Negro' },
+                { opm: '30ª CICOM', efetivo: 2, viaturas: 1, locais: 'Av. Alecrim João Paulo' }
+            ]
+        };
 
-function showDebugInfo(message, type = 'info') {
-    const debugDiv = document.getElementById('debugInfo');
-    debugDiv.innerHTML = message;
-    debugDiv.className = 'debug-info ' + type;
-    debugDiv.style.display = 'block';
-}
+        // Cores para os gráficos
+        const chartColors = {
+            background: [
+                'rgba(102, 126, 234, 0.8)',
+                'rgba(118, 75, 162, 0.8)',
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 159, 64, 0.8)',
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(153, 102, 255, 0.8)',
+                'rgba(255, 205, 86, 0.8)',
+                'rgba(201, 203, 207, 0.8)'
+            ],
+            border: [
+                'rgba(102, 126, 234, 1)',
+                'rgba(118, 75, 162, 1)',
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 159, 64, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 205, 86, 1)',
+                'rgba(201, 203, 207, 1)'
+            ]
+        };
 
-function loadSampleData() {
-    showDebugInfo('📱 Carregando dados de exemplo...', 'info');
-    
-    const sampleData = [
-        { opm: "BTL LESTE", viatura: "VTR 1090", graduacao: "Cap PM", nome: "F. BATISTA", local: "área comercial" },
-        { opm: "BTL LESTE", viatura: "VTR 1090", graduacao: "Cb PM", nome: "RIBAMAR", local: "área comercial" },
-        { opm: "BTL LESTE", viatura: "VTR 1075", graduacao: "Cad 1 PM", nome: "C. FARIAS", local: "área comercial" }
-    ];
-    
-    processExcelData(sampleData);
-    showDebugInfo('✅ Dashboard carregado!', 'success');
-}
-
-function processFile() {
-    const fileInput = document.getElementById('fileInput');
-    const file = fileInput.files[0];
-    
-    if (!file) {
-        showDebugInfo('❌ Selecione um arquivo Excel.', 'error');
-        return;
-    }
-    
-    showDebugInfo('📁 Processando arquivo...', 'info');
-    
-    const reader = new FileReader();
-    
-    reader.onload = function(e) {
-        try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            
-            let allData = [];
-            
-            workbook.SheetNames.forEach((sheetName) => {
-                const worksheet = workbook.Sheets[sheetName];
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-                
-                if (jsonData.length > 1) {
-                    const processedData = processSheetData(jsonData);
-                    allData = allData.concat(processedData);
+        // Inicialização dos gráficos
+        function initializeCharts() {
+            // Gráfico de Distribuição por OPM
+            const opmCtx = document.getElementById('opmChart').getContext('2d');
+            new Chart(opmCtx, {
+                type: 'bar',
+                data: {
+                    labels: dashboardData.opmDistribution.labels,
+                    datasets: [{
+                        label: 'Efetivo por OPM',
+                        data: dashboardData.opmDistribution.data,
+                        backgroundColor: chartColors.background,
+                        borderColor: chartColors.border,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Efetivo: ${context.parsed.y} policiais`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Quantidade de Policiais'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    }
                 }
             });
-            
-            showDebugInfo(`📊 ${allData.length} militares encontrados`, 'info');
-            
-            if (allData.length === 0) {
-                showDebugInfo('❌ Nenhum militar encontrado.', 'error');
-                return;
-            }
-            
-            processExcelData(allData);
-            showDebugInfo(`✅ ${allData.length} militares carregados`, 'success');
-            
-        } catch (error) {
-            showDebugInfo('❌ Erro: ' + error.message, 'error');
-        }
-    };
-    
-    reader.readAsArrayBuffer(file);
-}
 
-function processSheetData(sheetData) {
-    const data = [];
-    if (sheetData.length < 2) return data;
-    
-    const headers = sheetData[0].map(h => h ? h.toString().trim() : '');
-    
-    const findColumn = (patterns) => {
-        for (let pattern of patterns) {
-            const index = headers.findIndex(header => 
-                header && header.toString().toLowerCase().includes(pattern.toLowerCase())
-            );
-            if (index !== -1) return index;
+            // Gráfico de Distribuição por Graduação
+            const graduacaoCtx = document.getElementById('graduacaoChart').getContext('2d');
+            new Chart(graduacaoCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: dashboardData.graduacaoDistribution.labels,
+                    datasets: [{
+                        data: dashboardData.graduacaoDistribution.data,
+                        backgroundColor: chartColors.background,
+                        borderColor: chartColors.border,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 12,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico de Locais de Atuação
+            const locaisCtx = document.getElementById('locaisChart').getContext('2d');
+            new Chart(locaisCtx, {
+                type: 'pie',
+                data: {
+                    labels: dashboardData.locaisDistribution.labels,
+                    datasets: [{
+                        data: dashboardData.locaisDistribution.data,
+                        backgroundColor: chartColors.background,
+                        borderColor: chartColors.border,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.label}: ${context.parsed} ocorrências`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         }
-        return -1;
-    };
-    
-    const opmIndex = findColumn(['opm', 'unidade']);
-    const viaturaIndex = findColumn(['vtr', 'viatura', 'prefixo']);
-    const graduacaoIndex = findColumn(['grad', 'graduacao', 'posto']);
-    const nomeIndex = findColumn(['nome', 'militar']);
-    const localIndex = findColumn(['local', 'área', 'area']);
-    
-    let currentOpm = '';
-    let currentViatura = '';
-    let currentLocal = '';
-    
-    for (let i = 1; i < sheetData.length; i++) {
-        const row = sheetData[i];
-        if (!row || row.length === 0) continue;
-        
-        if (row.every(cell => !cell || cell.toString().trim() === '')) continue;
-        
-        if (opmIndex !== -1 && row[opmIndex] && row[opmIndex].toString().trim() !== '') {
-            currentOpm = row[opmIndex].toString().trim();
+
+        // Preencher tabela de resumo
+        function fillResumoTable() {
+            const tbody = document.getElementById('resumoTableBody');
+            tbody.innerHTML = '';
+            
+            dashboardData.resumoOperacional.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${item.opm}</strong></td>
+                    <td>${item.efetivo}</td>
+                    <td>${item.viaturas}</td>
+                    <td>${item.locais}</td>
+                `;
+                tbody.appendChild(row);
+            });
         }
-        
-        if (viaturaIndex !== -1 && row[viaturaIndex] && row[viaturaIndex].toString().trim() !== '') {
-            currentViatura = row[viaturaIndex].toString().trim();
-        }
-        
-        if (localIndex !== -1 && row[localIndex] && row[localIndex].toString().trim() !== '') {
-            currentLocal = row[localIndex].toString().trim();
-        }
-        
-        const nome = nomeIndex !== -1 ? (row[nomeIndex] || '').toString().trim() : '';
-        const graduacao = graduacaoIndex !== -1 ? (row[graduacaoIndex] || '').toString().trim() : '';
-        
-        if (nome !== '' && graduacao !== '') {
-            const item = {
-                opm: currentOpm,
-                viatura: currentViatura,
-                graduacao: graduacao,
-                nome: nome,
-                local: currentLocal
+
+        // Atualizar data e hora
+        function updateDateTime() {
+            const now = new Date();
+            const dateOptions = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                timeZone: 'America/Sao_Paulo'
+            };
+            const timeOptions = {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZone: 'America/Sao_Paulo'
             };
             
-            data.push(item);
+            document.getElementById('currentDate').textContent = 
+                now.toLocaleDateString('pt-BR', dateOptions);
+            document.getElementById('updateTime').textContent = 
+                now.toLocaleTimeString('pt-BR', timeOptions);
         }
-    }
-    
-    return data;
-}
 
-function processExcelData(data) {
-    Object.values(currentCharts).forEach(chart => {
-        if (chart && chart.destroy) chart.destroy();
-    });
-    currentCharts = {};
-    
-    document.getElementById('total-militares').textContent = data.length;
-    
-    const unidades = [...new Set(data.map(item => item.opm))].filter(opm => opm && opm.trim() !== '');
-    document.getElementById('total-unidades').textContent = unidades.length;
-    
-    const viaturas = [...new Set(data.map(item => item.viatura))].filter(vtr => vtr && vtr.trim() !== '');
-    document.getElementById('total-viaturas').textContent = viaturas.length;
-    
-    const areas = [...new Set(data.map(item => item.local))].filter(local => local && local.trim() !== '');
-    document.getElementById('total-areas').textContent = areas.length;
-    
-    const tableBody = document.getElementById('table-body');
-    tableBody.innerHTML = '';
-    data.forEach(item => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${item.opm}</td>
-            <td>${item.viatura}</td>
-            <td>${item.graduacao}</td>
-            <td>${item.nome}</td>
-            <td>${item.local}</td>
-        `;
-        tableBody.appendChild(row);
-    });
-    
-    const graduacaoCount = {};
-    const unidadeCount = {};
-    const viaturaCount = {};
-    const areaCount = {};
-    
-    data.forEach(item => {
-        graduacaoCount[item.graduacao] = (graduacaoCount[item.graduacao] || 0) + 1;
-        unidadeCount[item.opm] = (unidadeCount[item.opm] || 0) + 1;
-        
-        let tipoViatura = 'Outros';
-        if (item.viatura.includes('VTR')) tipoViatura = 'VTR';
-        else if (item.viatura.includes('POG')) tipoViatura = 'POG';
-        viaturaCount[tipoViatura] = (viaturaCount[tipoViatura] || 0) + 1;
-        
-        areaCount[item.local] = (areaCount[item.local] || 0) + 1;
-    });
-    
-    document.getElementById('dashboard-content').classList.remove('hidden');
-    createCharts(graduacaoCount, unidadeCount, viaturaCount, areaCount);
-}
+        // Efeitos de animação para as métricas
+        function animateMetrics() {
+            const metricElements = document.querySelectorAll('.metric-value');
+            metricElements.forEach(element => {
+                const finalValue = parseInt(element.textContent);
+                let currentValue = 0;
+                const duration = 1500;
+                const increment = finalValue / (duration / 16);
+                
+                const timer = setInterval(() => {
+                    currentValue += increment;
+                    if (currentValue >= finalValue) {
+                        element.textContent = finalValue;
+                        clearInterval(timer);
+                    } else {
+                        element.textContent = Math.floor(currentValue);
+                    }
+                }, 16);
+            });
+        }
 
-function createCharts(graduacaoCount, unidadeCount, viaturaCount, areaCount) {
-    const chartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom',
-                labels: {
-                    boxWidth: 12,
-                    font: { size: 10 }
-                }
-            }
-        }
-    };
-    
-    const ctx1 = document.getElementById('graduacaoChart').getContext('2d');
-    currentCharts.graduacao = new Chart(ctx1, {
-        type: 'doughnut',
-        data: {
-            labels: Object.keys(graduacaoCount),
-            datasets: [{
-                data: Object.values(graduacaoCount),
-                backgroundColor: ['#1a3d7c', '#2a9d8f', '#e63946', '#f4a261', '#e9c46a'],
-                borderWidth: 1
-            }]
-        },
-        options: chartOptions
-    });
-    
-    const ctx2 = document.getElementById('unidadeChart').getContext('2d');
-    currentCharts.unidade = new Chart(ctx2, {
-        type: 'bar',
-        data: {
-            labels: Object.keys(unidadeCount),
-            datasets: [{
-                label: 'Militares',
-                data: Object.values(unidadeCount),
-                backgroundColor: '#1a3d7c'
-            }]
-        },
-        options: {
-            ...chartOptions,
-            scales: {
-                y: { 
-                    beginAtZero: true, 
-                    ticks: { stepSize: 1 } 
-                }
-            }
-        }
-    });
-    
-    const ctx3 = document.getElementById('viaturaChart').getContext('2d');
-    currentCharts.viatura = new Chart(ctx3, {
-        type: 'pie',
-        data: {
-            labels: Object.keys(viaturaCount),
-            datasets: [{
-                data: Object.values(viaturaCount),
-                backgroundColor: ['#1a3d7c', '#e63946', '#2a9d8f']
-            }]
-        },
-        options: chartOptions
-    });
-    
-    const ctx4 = document.getElementById('areaChart').getContext('2d');
-    currentCharts.area = new Chart(ctx4, {
-        type: 'bar',
-        data: {
-            labels: Object.keys(areaCount).slice(0, 8),
-            datasets: [{
-                label: 'Militares',
-                data: Object.values(areaCount).slice(0, 8),
-                backgroundColor: '#2a9d8f'
-            }]
-        },
-        options: {
-            ...chartOptions,
-            indexAxis: 'y',
-            scales: {
-                x: { 
-                    beginAtZero: true, 
-                    ticks: { stepSize: 1 } 
-                }
-            }
-        }
-    });
-}
+        // Inicialização da aplicação
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDateTime();
+            initializeCharts();
+            fillResumoTable();
+            
+            // Animar métricas após um pequeno delay
+            setTimeout(animateMetrics, 500);
+            
+            // Atualizar hora a cada minuto
+            setInterval(updateDateTime, 60000);
+        });
 
-window.onload = function() {
-    showDebugInfo('📱 Dashboard Operação Natal\n\n💡 Use "Dados de Exemplo" para testar', 'info');
-};
+        // Suporte para redimensionamento da tela
+        window.addEventListener('resize', function() {
+            // Os gráficos do Chart.js são responsivos por padrão
+            updateDateTime();
+        });
+    </script>
+</body>
+</html>
