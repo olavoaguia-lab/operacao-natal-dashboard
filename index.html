@@ -81,10 +81,6 @@
             background: linear-gradient(135deg, #4CAF50, #45a049);
         }
 
-        .btn-warning {
-            background: linear-gradient(135deg, #ff9800, #f57c00);
-        }
-
         .btn-danger {
             background: linear-gradient(135deg, #f44336, #d32f2f);
         }
@@ -322,8 +318,6 @@
 
         tr:hover {
             background-color: #f8f9ff;
-            transform: scale(1.01);
-            transition: all 0.2s ease;
         }
 
         tr:nth-child(even) {
@@ -358,11 +352,6 @@
 
         .alert-error {
             background: linear-gradient(135deg, #f44336, #d32f2f);
-            color: white;
-        }
-
-        .alert-info {
-            background: linear-gradient(135deg, #2196F3, #1976D2);
             color: white;
         }
 
@@ -431,36 +420,6 @@
                 grid-template-columns: 1fr;
             }
         }
-
-        @media (max-width: 480px) {
-            body {
-                padding: 10px;
-            }
-            
-            .header {
-                padding: 20px;
-            }
-            
-            .header h1 {
-                font-size: 1.8rem;
-            }
-            
-            .metric-card, .chart-container, .data-table, .locais-container {
-                padding: 20px;
-            }
-            
-            .chart-wrapper {
-                height: 240px;
-            }
-            
-            .local-card {
-                padding: 20px;
-            }
-            
-            .local-count {
-                font-size: 2rem;
-            }
-        }
     </style>
 </head>
 <body>
@@ -527,7 +486,11 @@
         <div class="locais-container">
             <div class="chart-title">🎯 Locais de Atuação - Distribuição Detalhada</div>
             <div class="locais-grid" id="locaisGrid">
-                <!-- Locais serão preenchidos via JavaScript -->
+                <div class="local-card" style="grid-column: 1 / -1; background: linear-gradient(135deg, #95a5a6, #7f8c8d);">
+                    <div class="local-nome">Nenhum local encontrado</div>
+                    <div class="local-count">0</div>
+                    <div class="local-desc">Carregue dados para visualizar</div>
+                </div>
             </div>
         </div>
 
@@ -583,7 +546,7 @@
             graduacao: null
         };
 
-        // Dados de exemplo baseados na planilha fornecida
+        // Dados de exemplo
         const sampleData = [
             { OPM: "BTL LESTE", Viatura: "VTR 1090", Graduacao: "Cap PM", Nome: "F. BATISTA", Local: "área comercial" },
             { OPM: "BTL LESTE", Viatura: "VTR 1090", Graduacao: "Cb PM", Nome: "RIBAMAR", Local: "área comercial" },
@@ -594,15 +557,7 @@
             { OPM: "BTL LESTE", Viatura: "VTR RMP", Graduacao: "ST PM", Nome: "JULIO CONCEICAO BRASIL", Local: "área comercial" },
             { OPM: "BTL LESTE", Viatura: "VTR RMP", Graduacao: "Sd PM", Nome: "JOELZIMARA PARENTE", Local: "área comercial" },
             { OPM: "BTL LESTE", Viatura: "POG", Graduacao: "1º Sgt PM", Nome: "DIEGO FRANÇA", Local: "SHOPPING CIDADE LESTE" },
-            { OPM: "BTL LESTE", Viatura: "POG", Graduacao: "Cb PM", Nome: "CELIO MACHADO", Local: "SHOPPING CIDADE LESTE" },
-            { OPM: "BTL LESTE", Viatura: "POG", Graduacao: "1º Sgt PM", Nome: "N. PASSOS", Local: "Bradesco - Canópolis" },
-            { OPM: "BTL LESTE", Viatura: "POG", Graduacao: "3º Sgt PM", Nome: "MICHAEL SOUGLAS", Local: "Bradesco - Canópolis" },
-            { OPM: "4ª CICOM", Viatura: "VTR 1091", Graduacao: "Cb PM", Nome: "MARIA REGINA", Local: "área comercial" },
-            { OPM: "4ª CICOM", Viatura: "VTR 1091", Graduacao: "Sd PM", Nome: "TAYLOR VINICIUS", Local: "área comercial" },
-            { OPM: "14ª CICOM", Viatura: "VTR 1033", Graduacao: "Sd PM", Nome: "A. TAVARES", Local: "Fuxico, Autaz Mirim" },
-            { OPM: "14ª CICOM", Viatura: "VTR 1033", Graduacao: "Sd PM", Nome: "ILIDIO", Local: "Fuxico, Autaz Mirim" },
-            { OPM: "14ª CICOM", Viatura: "VTR 1104", Graduacao: "Sd PM", Nome: "KLEIDYSSON", Local: "Fuxico, Autaz Mirim" },
-            { OPM: "14ª CICOM", Viatura: "VTR 1104", Graduacao: "Sd PM", Nome: "GABRIEL FRANCO", Local: "Fuxico, Autaz Mirim" }
+            { OPM: "BTL LESTE", Viatura: "POG", Graduacao: "Cb PM", Nome: "CELIO MACHADO", Local: "SHOPPING CIDADE LESTE" }
         ];
 
         // Cores para os gráficos
@@ -647,32 +602,51 @@
                 now.toLocaleDateString('pt-BR', options);
         }
 
-        // Processar dados do Excel - FUNÇÃO CORRIGIDA
+        // FUNÇÃO CORRIGIDA - Processar dados do Excel
         function processExcelData(data) {
             try {
                 showLoading(true);
                 
-                console.log('Dados recebidos do Excel:', data);
+                console.log('Dados brutos do Excel:', data);
                 
-                // Processamento imediato sem timeout
-                currentData = data.filter(row => 
-                    row.OPM && row.Viatura && row.Graduacao && row.Nome && row.Local
+                // Processar dados - método mais flexível
+                currentData = data.map(row => {
+                    // Tentar diferentes nomes de colunas
+                    const opm = row.OPM || row.opm || row['OPM'] || '';
+                    const viatura = row.Viatura || row.viatura || row['Viatura'] || row['Prefixo VTR'] || '';
+                    const graduacao = row.Graduacao || row.graduacao || row['Graduacao'] || row.Grad || '';
+                    const nome = row.Nome || row.nome || row['Nome'] || '';
+                    const local = row.Local || row.local || row['Local'] || '';
+                    
+                    return {
+                        OPM: opm,
+                        Viatura: viatura,
+                        Graduacao: graduacao,
+                        Nome: nome,
+                        Local: local
+                    };
+                }).filter(row => 
+                    row.OPM && row.OPM !== '' && 
+                    row.Viatura && row.Viatura !== '' && 
+                    row.Graduacao && row.Graduacao !== '' && 
+                    row.Nome && row.Nome !== '' && 
+                    row.Local && row.Local !== ''
                 );
                 
-                console.log('Dados filtrados:', currentData);
+                console.log('Dados processados:', currentData);
                 
                 if (currentData.length === 0) {
-                    throw new Error('Nenhum dado válido encontrado na planilha. Verifique se as colunas estão nomeadas corretamente.');
+                    throw new Error('Nenhum dado válido encontrado. Verifique se a planilha tem as colunas: OPM, Viatura, Graduacao, Nome, Local');
                 }
                 
-                // Atualizar o dashboard imediatamente
+                // Atualizar dashboard
                 updateDashboard();
                 showAlert(`✅ Dados carregados com sucesso! ${currentData.length} registros processados.`);
                 showLoading(false);
                 
             } catch (error) {
                 console.error('Erro no processamento:', error);
-                showAlert(`❌ Erro ao processar dados: ${error.message}`, 'error');
+                showAlert(`❌ Erro: ${error.message}`, 'error');
                 showLoading(false);
             }
         }
@@ -689,33 +663,38 @@
 
         // Calcular distribuições para gráficos
         function calculateDistributions() {
-            // Distribuição por OPM
             const opmCount = {};
-            currentData.forEach(row => {
-                opmCount[row.OPM] = (opmCount[row.OPM] || 0) + 1;
-            });
-            
-            // Distribuição por Graduação
             const gradCount = {};
-            currentData.forEach(row => {
-                gradCount[row.Graduacao] = (gradCount[row.Graduacao] || 0) + 1;
-            });
-            
-            // Distribuição por Local
             const localCount = {};
+            
             currentData.forEach(row => {
-                const local = row.Local.toLowerCase();
-                let categoria = row.Local; // Mantém o nome original
+                // OPM
+                opmCount[row.OPM] = (opmCount[row.OPM] || 0) + 1;
                 
-                localCount[categoria] = (localCount[categoria] || 0) + 1;
+                // Graduação
+                gradCount[row.Graduacao] = (gradCount[row.Graduacao] || 0) + 1;
+                
+                // Local
+                localCount[row.Local] = (localCount[row.Local] || 0) + 1;
             });
             
             return { opmCount, gradCount, localCount };
         }
 
-        // Atualizar dashboard - FUNÇÃO PRINCIPAL
+        // Atualizar dashboard
         function updateDashboard() {
-            console.log('Atualizando dashboard...', currentData.length, 'registros');
+            console.log('Atualizando dashboard com:', currentData.length, 'registros');
+            
+            if (currentData.length === 0) {
+                // Resetar tudo se não há dados
+                document.getElementById('totalViaturas').textContent = '0';
+                document.getElementById('efetivoAtivo').textContent = '0';
+                document.getElementById('opmsAtuacao').textContent = '0';
+                document.getElementById('locaisAtuacao').textContent = '0';
+                updateDetailsTable();
+                updateLocaisGrid({});
+                return;
+            }
             
             const metrics = calculateMetrics();
             const distributions = calculateDistributions();
@@ -726,22 +705,11 @@
             document.getElementById('opmsAtuacao').textContent = metrics.opms;
             document.getElementById('locaisAtuacao').textContent = metrics.locais;
             
-            // Atualizar tabela de detalhes
+            // Atualizar componentes
             updateDetailsTable();
-            
-            // Atualizar locais de atuação
             updateLocaisGrid(distributions.localCount);
-            
-            // Atualizar gráficos
             updateCharts(distributions);
-            
-            // Animar métricas
             animateMetrics();
-            
-            // Atualizar data/hora
-            updateDateTime();
-            
-            console.log('Dashboard atualizado com sucesso!');
         }
 
         // Atualizar grid de locais
@@ -751,7 +719,7 @@
             
             const locaisArray = Object.entries(localCount)
                 .sort((a, b) => b[1] - a[1])
-                .slice(0, 8); // Top 8 locais
+                .slice(0, 8);
             
             if (locaisArray.length === 0) {
                 locaisGrid.innerHTML = '<div class="local-card" style="grid-column: 1 / -1; background: linear-gradient(135deg, #95a5a6, #7f8c8d);"><div class="local-nome">Nenhum local encontrado</div><div class="local-count">0</div><div class="local-desc">Carregue dados para visualizar</div></div>';
@@ -792,11 +760,11 @@
             currentData.forEach(row => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><strong>${row.OPM || ''}</strong></td>
-                    <td>${row.Viatura || ''}</td>
-                    <td>${row.Graduacao || ''}</td>
-                    <td>${row.Nome || ''}</td>
-                    <td>${row.Local || ''}</td>
+                    <td><strong>${row.OPM}</strong></td>
+                    <td>${row.Viatura}</td>
+                    <td>${row.Graduacao}</td>
+                    <td>${row.Nome}</td>
+                    <td>${row.Local}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -805,9 +773,8 @@
         // Atualizar gráficos
         function updateCharts(distributions) {
             // Destruir gráficos existentes
-            Object.values(charts).forEach(chart => {
-                if (chart) chart.destroy();
-            });
+            if (charts.opm) charts.opm.destroy();
+            if (charts.graduacao) charts.graduacao.destroy();
             
             // Gráfico de OPM
             const opmCtx = document.getElementById('opmChart').getContext('2d');
@@ -827,34 +794,10 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return `Policiais: ${context.parsed.y}`;
-                                }
-                            }
-                        }
-                    },
+                    plugins: { legend: { display: false } },
                     scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: { 
-                                display: true, 
-                                text: 'Quantidade de Policiais',
-                                font: { weight: 'bold' }
-                            },
-                            grid: { color: 'rgba(0,0,0,0.1)' }
-                        },
-                        x: {
-                            ticks: { 
-                                maxRotation: 45,
-                                minRotation: 45,
-                                font: { size: 11 }
-                            },
-                            grid: { display: false }
-                        }
+                        y: { beginAtZero: true },
+                        x: { ticks: { maxRotation: 45, minRotation: 45 } }
                     }
                 }
             });
@@ -878,11 +821,7 @@
                     plugins: {
                         legend: { 
                             position: 'right',
-                            labels: { 
-                                boxWidth: 15,
-                                font: { size: 12 },
-                                padding: 15
-                            }
+                            labels: { boxWidth: 15, font: { size: 12 } }
                         }
                     },
                     cutout: '60%'
@@ -897,7 +836,7 @@
                 const element = document.getElementById(metric);
                 const finalValue = parseInt(element.textContent);
                 let current = 0;
-                const duration = 1500;
+                const duration = 1000;
                 const step = finalValue / (duration / 16);
                 
                 const timer = setInterval(() => {
@@ -955,7 +894,7 @@
                 `Última atualização: ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR')}`;
         }
 
-        // Event Listener para upload de arquivo - CORRIGIDO
+        // EVENT LISTENER CORRIGIDO para upload de arquivo
         document.getElementById('fileInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -965,27 +904,50 @@
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    console.log('Lendo arquivo...');
+                    console.log('Iniciando leitura do arquivo...');
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
-                    console.log('Planilhas disponíveis:', workbook.SheetNames);
                     
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-                    console.log('Dados convertidos para JSON:', jsonData);
+                    console.log('Planilhas encontradas:', workbook.SheetNames);
                     
-                    // Processar os dados - isso vai automaticamente atualizar o dashboard
+                    // Usar a primeira planilha
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // Converter para JSON
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    console.log('Dados convertidos:', jsonData);
+                    
+                    if (jsonData.length === 0) {
+                        throw new Error('A planilha está vazia');
+                    }
+                    
+                    // Processar dados
                     processExcelData(jsonData);
                     
                 } catch (error) {
-                    console.error('Erro na leitura do arquivo:', error);
+                    console.error('Erro na leitura:', error);
                     showAlert('❌ Erro ao ler arquivo: ' + error.message, 'error');
                     showLoading(false);
                 }
             };
             
-            reader.onerror = function() {
-                console.error('Erro no FileReader');
+            reader.onerror = function(error) {
+                console.error('Erro no FileReader:', error);
                 showAlert('❌ Erro ao ler o arquivo selecionado', 'error');
                 showLoading(false);
-           
+            };
+            
+            reader.readAsArrayBuffer(file);
+        });
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCurrentDate();
+            updateDateTime();
+            setInterval(updateDateTime, 60000);
+            // Não carregar dados de exemplo automaticamente
+        });
+    </script>
+</body>
+</html>
