@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Zona Leste - 1º Turno</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -40,9 +41,52 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
 
-        .header .date {
-            font-size: 1.1rem;
-            opacity: 0.9;
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            background: white;
+            color: #667eea;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-label {
+            padding: 12px 25px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-label:hover {
+            background: #45a049;
+            transform: translateY(-2px);
         }
 
         .metrics-grid {
@@ -157,6 +201,32 @@
             opacity: 0.8;
         }
 
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.1rem;
+            padding: 40px;
+        }
+
+        .alert {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 1.8rem;
@@ -177,36 +247,16 @@
             .metric-value {
                 font-size: 2rem;
             }
-        }
-
-        @media (max-width: 480px) {
-            body {
-                padding: 10px;
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
             }
             
-            .header h1 {
-                font-size: 1.5rem;
+            .btn, .file-label {
+                width: 100%;
+                max-width: 300px;
             }
-            
-            .metric-card, .chart-container, .data-table {
-                padding: 15px;
-            }
-            
-            .chart-wrapper {
-                height: 200px;
-            }
-        }
-
-        .loading {
-            text-align: center;
-            color: white;
-            font-size: 1.1rem;
-            padding: 40px;
-        }
-
-        .highlight {
-            color: #667eea;
-            font-weight: bold;
         }
     </style>
 </head>
@@ -215,30 +265,41 @@
         <div class="header">
             <h1>📊 Dashboard Zona Leste - 1º Turno</h1>
             <div class="date" id="currentDate">Carregando dados...</div>
+            
+            <div class="controls">
+                <input type="file" id="fileInput" class="file-input" accept=".xlsx, .xls">
+                <label for="fileInput" class="file-label">📁 Carregar Planilha Excel</label>
+                
+                <button class="btn" onclick="loadSampleData()">🔄 Carregar Dados de Exemplo</button>
+                <button class="btn btn-primary" onclick="exportToExcel()">💾 Exportar para Excel</button>
+                <button class="btn" onclick="clearData()">🗑️ Limpar Dados</button>
+            </div>
         </div>
+
+        <div id="alertContainer"></div>
 
         <div class="metrics-grid" id="metricsGrid">
             <div class="metric-card">
                 <div class="metric-label">Total de Viaturas</div>
-                <div class="metric-value" id="totalViaturas">8</div>
+                <div class="metric-value" id="totalViaturas">0</div>
                 <div class="metric-subtitle">Operacionais</div>
             </div>
             
             <div class="metric-card">
                 <div class="metric-label">Efetivo Ativo</div>
-                <div class="metric-value" id="efetivoAtivo">39</div>
+                <div class="metric-value" id="efetivoAtivo">0</div>
                 <div class="metric-subtitle">Policiais</div>
             </div>
             
             <div class="metric-card">
                 <div class="metric-label">OPMs com Atuação</div>
-                <div class="metric-value" id="opmsAtuacao">7</div>
+                <div class="metric-value" id="opmsAtuacao">0</div>
                 <div class="metric-subtitle">Unidades</div>
             </div>
             
             <div class="metric-card">
                 <div class="metric-label">Locais de Atuação</div>
-                <div class="metric-value" id="locaisAtuacao">9</div>
+                <div class="metric-value" id="locaisAtuacao">0</div>
                 <div class="metric-subtitle">Áreas</div>
             </div>
         </div>
@@ -267,61 +328,57 @@
         </div>
 
         <div class="data-table">
-            <h3>Resumo Operacional por OPM</h3>
-            <table id="resumoTable">
+            <h3>Dados Detalhados do Efetivo</h3>
+            <table id="detalhesTable">
                 <thead>
                     <tr>
                         <th>OPM</th>
-                        <th>Efetivo</th>
-                        <th>Viaturas</th>
-                        <th>Principais Locais</th>
+                        <th>Viatura</th>
+                        <th>Graduação</th>
+                        <th>Nome</th>
+                        <th>Local</th>
                     </tr>
                 </thead>
-                <tbody id="resumoTableBody">
-                    <!-- Dados serão preenchidos via JavaScript -->
+                <tbody id="detalhesTableBody">
+                    <tr>
+                        <td colspan="5" style="text-align: center;">Nenhum dado carregado</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
 
         <div class="footer">
-            <p>Dashboard Operacional - Zona Leste | Atualizado em <span id="updateTime"></span></p>
-            <p>Desenvolvido para acompanhamento do 1º Turno</p>
+            <p>Dashboard Operacional - Zona Leste | <span id="updateTime"></span></p>
+            <p>Carregue uma planilha Excel ou use os dados de exemplo</p>
         </div>
     </div>
 
     <script>
-        // Dados baseados na planilha fornecida
-        const dashboardData = {
-            metrics: {
-                totalViaturas: 8,
-                efetivoAtivo: 39,
-                opmsAtuacao: 7,
-                locaisAtuacao: 9
-            },
-            opmDistribution: {
-                labels: ['BTL LESTE', '4ª CICOM', '9ª CICOM', '11ª CICOM', '14ª CICOM', '25ª CICOM', '28ª CICOM', '29ª CICOM', '30ª CICOM'],
-                data: [21, 2, 2, 2, 6, 2, 2, 2, 2]
-            },
-            graduacaoDistribution: {
-                labels: ['Sd PM', 'Cb PM', '3º Sgt PM', '1º Sgt PM', 'Cad 1 PM', '2º Sgt PM', 'ST PM', 'Sgt PM', 'Cap PM'],
-                data: [16, 8, 6, 4, 2, 1, 1, 1, 1]
-            },
-            locaisDistribution: {
-                labels: ['Área Comercial', 'Fuxico', 'Shoppings', 'Bancos', 'Avenidas'],
-                data: [14, 8, 6, 5, 6]
-            },
-            resumoOperacional: [
-                { opm: 'BTL LESTE', efetivo: 21, viaturas: 4, locais: 'Área Comercial, Shoppings, Bancos' },
-                { opm: '14ª CICOM', efetivo: 6, viaturas: 3, locais: 'Fuxico - Autaz Mirim' },
-                { opm: '4ª CICOM', efetivo: 2, viaturas: 1, locais: 'Área Comercial' },
-                { opm: '9ª CICOM', efetivo: 2, viaturas: 1, locais: 'Av. Grand Circular' },
-                { opm: '11ª CICOM', efetivo: 2, viaturas: 1, locais: 'Área Comercial' },
-                { opm: '25ª CICOM', efetivo: 2, viaturas: 1, locais: 'Área Comercial' },
-                { opm: '28ª CICOM', efetivo: 2, viaturas: 1, locais: 'Av. Getúlio Vargas' },
-                { opm: '29ª CICOM', efetivo: 2, viaturas: 1, locais: 'Av. Rio Negro' },
-                { opm: '30ª CICOM', efetivo: 2, viaturas: 1, locais: 'Av. Alecrim João Paulo' }
-            ]
+        // Variáveis globais
+        let currentData = [];
+        let charts = {
+            opm: null,
+            graduacao: null,
+            locais: null
         };
+
+        // Dados de exemplo baseados na planilha fornecida
+        const sampleData = [
+            { OPM: "BTL LESTE", Viatura: "VTR 1090", Graduacao: "Cap PM", Nome: "F. BATISTA", Local: "área comercial" },
+            { OPM: "BTL LESTE", Viatura: "VTR 1090", Graduacao: "Cb PM", Nome: "RIBAMAR", Local: "área comercial" },
+            { OPM: "BTL LESTE", Viatura: "VTR 1075", Graduacao: "Cad 1 PM", Nome: "C. FARIAS", Local: "área comercial" },
+            { OPM: "BTL LESTE", Viatura: "VTR 1075", Graduacao: "Cad 1 PM", Nome: "EMILY", Local: "área comercial" },
+            { OPM: "BTL LESTE", Viatura: "VTR 1075", Graduacao: "Cad 1 PM", Nome: "CASSIO BARROSO", Local: "área comercial" },
+            { OPM: "BTL LESTE", Viatura: "VTR 1075", Graduacao: "Sd PM", Nome: "BEATRIZ BLENDA", Local: "área comercial" },
+            { OPM: "BTL LESTE", Viatura: "VTR RMP", Graduacao: "ST PM", Nome: "JULIO CONCEICAO BRASIL", Local: "área comercial" },
+            { OPM: "BTL LESTE", Viatura: "VTR RMP", Graduacao: "Sd PM", Nome: "JOELZIMARA PARENTE", Local: "área comercial" },
+            { OPM: "BTL LESTE", Viatura: "POG", Graduacao: "1º Sgt PM", Nome: "DIEGO FRANÇA", Local: "SHOPPING CIDADE LESTE" },
+            { OPM: "BTL LESTE", Viatura: "POG", Graduacao: "Cb PM", Nome: "CELIO MACHADO", Local: "SHOPPING CIDADE LESTE" },
+            { OPM: "4ª CICOM", Viatura: "VTR 1091", Graduacao: "Cb PM", Nome: "MARIA REGINA", Local: "área comercial" },
+            { OPM: "4ª CICOM", Viatura: "VTR 1091", Graduacao: "Sd PM", Nome: "TAYLOR VINICIUS", Local: "área comercial" },
+            { OPM: "14ª CICOM", Viatura: "VTR 1033", Graduacao: "Sd PM", Nome: "A. TAVARES", Local: "Fuxico, Autaz Mirim" },
+            { OPM: "14ª CICOM", Viatura: "VTR 1033", Graduacao: "Sd PM", Nome: "ILIDIO", Local: "Fuxico, Autaz Mirim" }
+        ];
 
         // Cores para os gráficos
         const chartColors = {
@@ -335,215 +392,317 @@
                 'rgba(153, 102, 255, 0.8)',
                 'rgba(255, 205, 86, 0.8)',
                 'rgba(201, 203, 207, 0.8)'
-            ],
-            border: [
-                'rgba(102, 126, 234, 1)',
-                'rgba(118, 75, 162, 1)',
-                'rgba(255, 99, 132, 1)',
-                'rgba(54, 162, 235, 1)',
-                'rgba(255, 159, 64, 1)',
-                'rgba(75, 192, 192, 1)',
-                'rgba(153, 102, 255, 1)',
-                'rgba(255, 205, 86, 1)',
-                'rgba(201, 203, 207, 1)'
             ]
         };
 
-        // Inicialização dos gráficos
-        function initializeCharts() {
-            // Gráfico de Distribuição por OPM
-            const opmCtx = document.getElementById('opmChart').getContext('2d');
-            new Chart(opmCtx, {
-                type: 'bar',
-                data: {
-                    labels: dashboardData.opmDistribution.labels,
-                    datasets: [{
-                        label: 'Efetivo por OPM',
-                        data: dashboardData.opmDistribution.data,
-                        backgroundColor: chartColors.background,
-                        borderColor: chartColors.border,
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return `Efetivo: ${context.parsed.y} policiais`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Quantidade de Policiais'
-                            }
-                        },
-                        x: {
-                            ticks: {
-                                maxRotation: 45,
-                                minRotation: 45
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Gráfico de Distribuição por Graduação
-            const graduacaoCtx = document.getElementById('graduacaoChart').getContext('2d');
-            new Chart(graduacaoCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: dashboardData.graduacaoDistribution.labels,
-                    datasets: [{
-                        data: dashboardData.graduacaoDistribution.data,
-                        backgroundColor: chartColors.background,
-                        borderColor: chartColors.border,
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: {
-                                boxWidth: 12,
-                                font: {
-                                    size: 11
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Gráfico de Locais de Atuação
-            const locaisCtx = document.getElementById('locaisChart').getContext('2d');
-            new Chart(locaisCtx, {
-                type: 'pie',
-                data: {
-                    labels: dashboardData.locaisDistribution.labels,
-                    datasets: [{
-                        data: dashboardData.locaisDistribution.data,
-                        backgroundColor: chartColors.background,
-                        borderColor: chartColors.border,
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                boxWidth: 12,
-                                font: {
-                                    size: 11
-                                }
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return `${context.label}: ${context.parsed} ocorrências`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
+        // Função para mostrar alertas
+        function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            alertContainer.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
         }
 
-        // Preencher tabela de resumo
-        function fillResumoTable() {
-            const tbody = document.getElementById('resumoTableBody');
+        // Processar dados do Excel
+        function processExcelData(data) {
+            try {
+                currentData = data.filter(row => 
+                    row.OPM && row.Viatura && row.Graduacao && row.Nome && row.Local
+                );
+                
+                if (currentData.length === 0) {
+                    throw new Error('Nenhum dado válido encontrado na planilha');
+                }
+                
+                updateDashboard();
+                showAlert(`Dados carregados com sucesso! ${currentData.length} registros processados.`);
+            } catch (error) {
+                showAlert(`Erro ao processar dados: ${error.message}`, 'error');
+            }
+        }
+
+        // Calcular métricas
+        function calculateMetrics() {
+            const viaturas = [...new Set(currentData.map(row => row.Viatura))].length;
+            const efetivo = currentData.length;
+            const opms = [...new Set(currentData.map(row => row.OPM))].length;
+            const locais = [...new Set(currentData.map(row => row.Local))].length;
+            
+            return { viaturas, efetivo, opms, locais };
+        }
+
+        // Calcular distribuições para gráficos
+        function calculateDistributions() {
+            // Distribuição por OPM
+            const opmCount = {};
+            currentData.forEach(row => {
+                opmCount[row.OPM] = (opmCount[row.OPM] || 0) + 1;
+            });
+            
+            // Distribuição por Graduação
+            const gradCount = {};
+            currentData.forEach(row => {
+                gradCount[row.Graduacao] = (gradCount[row.Graduacao] || 0) + 1;
+            });
+            
+            // Distribuição por Local
+            const localCount = {};
+            currentData.forEach(row => {
+                // Agrupar locais similares
+                const local = row.Local.toLowerCase();
+                let categoria = 'Outros';
+                
+                if (local.includes('comercial')) categoria = 'Área Comercial';
+                else if (local.includes('shopping')) categoria = 'Shoppings';
+                else if (local.includes('fuxico')) categoria = 'Fuxico';
+                else if (local.includes('av.') || local.includes('avenida')) categoria = 'Avenidas';
+                else if (local.includes('banco') || local.includes('bradesco') || local.includes('itau')) categoria = 'Bancos';
+                
+                localCount[categoria] = (localCount[categoria] || 0) + 1;
+            });
+            
+            return { opmCount, gradCount, localCount };
+        }
+
+        // Atualizar dashboard
+        function updateDashboard() {
+            const metrics = calculateMetrics();
+            const distributions = calculateDistributions();
+            
+            // Atualizar métricas
+            document.getElementById('totalViaturas').textContent = metrics.viaturas;
+            document.getElementById('efetivoAtivo').textContent = metrics.efetivo;
+            document.getElementById('opmsAtuacao').textContent = metrics.opms;
+            document.getElementById('locaisAtuacao').textContent = metrics.locais;
+            
+            // Atualizar tabela de detalhes
+            updateDetailsTable();
+            
+            // Atualizar gráficos
+            updateCharts(distributions);
+            
+            // Animar métricas
+            animateMetrics();
+        }
+
+        // Atualizar tabela de detalhes
+        function updateDetailsTable() {
+            const tbody = document.getElementById('detalhesTableBody');
             tbody.innerHTML = '';
             
-            dashboardData.resumoOperacional.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td><strong>${item.opm}</strong></td>
-                    <td>${item.efetivo}</td>
-                    <td>${item.viaturas}</td>
-                    <td>${item.locais}</td>
+            if (currentData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Nenhum dado carregado</td></tr>';
+                return;
+            }
+            
+            currentData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.OPM || ''}</td>
+                    <td>${row.Viatura || ''}</td>
+                    <td>${row.Graduacao || ''}</td>
+                    <td>${row.Nome || ''}</td>
+                    <td>${row.Local || ''}</td>
                 `;
-                tbody.appendChild(row);
+                tbody.appendChild(tr);
             });
         }
 
-        // Atualizar data e hora
-        function updateDateTime() {
-            const now = new Date();
-            const dateOptions = { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric',
-                timeZone: 'America/Sao_Paulo'
-            };
-            const timeOptions = {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                timeZone: 'America/Sao_Paulo'
-            };
+        // Atualizar gráficos
+        function updateCharts(distributions) {
+            // Destruir gráficos existentes
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
             
-            document.getElementById('currentDate').textContent = 
-                now.toLocaleDateString('pt-BR', dateOptions);
-            document.getElementById('updateTime').textContent = 
-                now.toLocaleTimeString('pt-BR', timeOptions);
+            // Gráfico de OPM
+            const opmCtx = document.getElementById('opmChart').getContext('2d');
+            charts.opm = new Chart(opmCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(distributions.opmCount),
+                    datasets: [{
+                        label: 'Efetivo por OPM',
+                        data: Object.values(distributions.opmCount),
+                        backgroundColor: chartColors.background,
+                        borderColor: chartColors.background.map(color => color.replace('0.8', '1')),
+                        borderWidth: 2
+                    }]
+                },
+                options: getChartOptions('Quantidade de Policiais')
+            });
+            
+            // Gráfico de Graduação
+            const gradCtx = document.getElementById('graduacaoChart').getContext('2d');
+            charts.graduacao = new Chart(gradCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(distributions.gradCount),
+                    datasets: [{
+                        data: Object.values(distributions.gradCount),
+                        backgroundColor: chartColors.background,
+                        borderColor: chartColors.background.map(color => color.replace('0.8', '1')),
+                        borderWidth: 2
+                    }]
+                },
+                options: getDoughnutOptions()
+            });
+            
+            // Gráfico de Locais
+            const localCtx = document.getElementById('locaisChart').getContext('2d');
+            charts.locais = new Chart(localCtx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(distributions.localCount),
+                    datasets: [{
+                        data: Object.values(distributions.localCount),
+                        backgroundColor: chartColors.background,
+                        borderColor: chartColors.background.map(color => color.replace('0.8', '1')),
+                        borderWidth: 2
+                    }]
+                },
+                options: getPieOptions()
+            });
         }
 
-        // Efeitos de animação para as métricas
+        // Configurações dos gráficos
+        function getChartOptions(yLabel) {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: yLabel }
+                    },
+                    x: {
+                        ticks: { maxRotation: 45, minRotation: 45 }
+                    }
+                }
+            };
+        }
+
+        function getDoughnutOptions() {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right' }
+                }
+            };
+        }
+
+        function getPieOptions() {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            };
+        }
+
+        // Animar métricas
         function animateMetrics() {
-            const metricElements = document.querySelectorAll('.metric-value');
-            metricElements.forEach(element => {
+            const metrics = ['totalViaturas', 'efetivoAtivo', 'opmsAtuacao', 'locaisAtuacao'];
+            metrics.forEach(metric => {
+                const element = document.getElementById(metric);
                 const finalValue = parseInt(element.textContent);
-                let currentValue = 0;
-                const duration = 1500;
-                const increment = finalValue / (duration / 16);
+                let current = 0;
+                const duration = 1000;
+                const step = finalValue / (duration / 16);
                 
                 const timer = setInterval(() => {
-                    currentValue += increment;
-                    if (currentValue >= finalValue) {
+                    current += step;
+                    if (current >= finalValue) {
                         element.textContent = finalValue;
                         clearInterval(timer);
                     } else {
-                        element.textContent = Math.floor(currentValue);
+                        element.textContent = Math.floor(current);
                     }
                 }, 16);
             });
         }
 
-        // Inicialização da aplicação
-        document.addEventListener('DOMContentLoaded', function() {
-            updateDateTime();
-            initializeCharts();
-            fillResumoTable();
+        // Carregar dados de exemplo
+        function loadSampleData() {
+            currentData = sampleData;
+            updateDashboard();
+            showAlert('Dados de exemplo carregados com sucesso!');
+        }
+
+        // Exportar para Excel
+        function exportToExcel() {
+            if (currentData.length === 0) {
+                showAlert('Nenhum dado para exportar!', 'error');
+                return;
+            }
             
-            // Animar métricas após um pequeno delay
-            setTimeout(animateMetrics, 500);
+            try {
+                const ws = XLSX.utils.json_to_sheet(currentData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Dados Zona Leste");
+                XLSX.writeFile(wb, "dashboard_zona_leste.xlsx");
+                showAlert('Planilha exportada com sucesso!');
+            } catch (error) {
+                showAlert('Erro ao exportar planilha: ' + error.message, 'error');
+            }
+        }
+
+        // Limpar dados
+        function clearData() {
+            currentData = [];
+            updateDashboard();
+            showAlert('Dados limpos com sucesso!');
+        }
+
+        // Atualizar data e hora
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('currentDate').textContent = 
+                now.toLocaleDateString('pt-BR', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+            document.getElementById('updateTime').textContent = 
+                `Atualizado em: ${now.toLocaleTimeString('pt-BR')}`;
+        }
+
+        // Event Listeners
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
             
-            // Atualizar hora a cada minuto
-            setInterval(updateDateTime, 60000);
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                    processExcelData(jsonData);
+                } catch (error) {
+                    showAlert('Erro ao ler arquivo: ' + error.message, 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
         });
 
-        // Suporte para redimensionamento da tela
-        window.addEventListener('resize', function() {
-            // Os gráficos do Chart.js são responsivos por padrão
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
             updateDateTime();
+            setInterval(updateDateTime, 60000);
+            loadSampleData(); // Carrega dados de exemplo automaticamente
         });
     </script>
 </body>
