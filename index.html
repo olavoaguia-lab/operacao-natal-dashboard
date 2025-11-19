@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Zona Leste - Monitoramento Operacional</title>
+    <title>Operação Natal - Batalhão Leste</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
@@ -466,8 +466,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚨 Dashboard Zona Leste</h1>
-            <div class="subtitle">Monitoramento Operacional em Tempo Real</div>
+            <h1>🎄 Operação Natal - Batalhão Leste</h1>
+            <div class="subtitle" id="currentDate">Monitoramento Operacional em Tempo Real</div>
             
             <div class="controls">
                 <input type="file" id="fileInput" class="file-input" accept=".xlsx, .xls">
@@ -570,7 +570,7 @@
         </div>
 
         <div class="footer">
-            <p>📊 Dashboard Operacional - Zona Leste | <span id="updateTime"></span></p>
+            <p>📊 Operação Natal - Batalhão Leste | <span id="updateTime"></span></p>
             <p>🔄 Atualização automática | Desenvolvido para monitoramento em tempo real</p>
         </div>
     </div>
@@ -634,7 +634,20 @@
             }
         }
 
-        // Processar dados do Excel - FUNÇÃO CORRIGIDA
+        // Atualizar data atual no header
+        function updateCurrentDate() {
+            const now = new Date();
+            const options = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            };
+            document.getElementById('currentDate').textContent = 
+                now.toLocaleDateString('pt-BR', options);
+        }
+
+        // Processar dados do Excel
         function processExcelData(data) {
             try {
                 showLoading(true);
@@ -698,7 +711,7 @@
             return { opmCount, gradCount, localCount };
         }
 
-        // Atualizar dashboard - FUNÇÃO PRINCIPAL
+        // Atualizar dashboard
         function updateDashboard() {
             console.log('Atualizando dashboard...', currentData.length, 'registros');
             
@@ -918,8 +931,8 @@
             try {
                 const ws = XLSX.utils.json_to_sheet(currentData);
                 const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Dados Zona Leste");
-                XLSX.writeFile(wb, "dashboard_zona_leste.xlsx");
+                XLSX.utils.book_append_sheet(wb, ws, "Operação Natal - BTL Leste");
+                XLSX.writeFile(wb, "operacao_natal_btl_leste.xlsx");
                 showAlert('✅ Planilha exportada com sucesso!');
             } catch (error) {
                 showAlert('❌ Erro ao exportar planilha: ' + error.message, 'error');
@@ -940,7 +953,7 @@
                 `Última atualização: ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR')}`;
         }
 
-        // Event Listener para upload de arquivo - CORRIGIDO
+        // Event Listener para upload de arquivo
         document.getElementById('fileInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -975,7 +988,8 @@
 
         // Inicialização
         document.addEventListener('DOMContentLoaded', function() {
-            updateDateTime();
+            updateCurrentDate(); // Atualiza a data no header
+            updateDateTime(); // Atualiza a data/hora no footer
             setInterval(updateDateTime, 60000);
             loadSampleData(); // Carrega dados de exemplo automaticamente
         });
