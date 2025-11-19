@@ -366,6 +366,25 @@
             color: white;
         }
 
+        .loading {
+            display: none;
+            text-align: center;
+            color: white;
+            font-size: 1.2rem;
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .icon {
+            font-size: 1.2rem;
+        }
+
         @media (max-width: 1200px) {
             .charts-grid {
                 grid-template-columns: 1fr;
@@ -442,17 +461,6 @@
                 font-size: 2rem;
             }
         }
-
-        .loading {
-            text-align: center;
-            color: white;
-            font-size: 1.2rem;
-            padding: 40px;
-        }
-
-        .icon {
-            font-size: 1.2rem;
-        }
     </style>
 </head>
 <body>
@@ -486,6 +494,9 @@
         </div>
 
         <div id="alertContainer"></div>
+        <div id="loadingIndicator" class="loading">
+            📊 Processando planilha e atualizando dashboard...
+        </div>
 
         <div class="metrics-grid" id="metricsGrid">
             <div class="metric-card">
@@ -613,21 +624,41 @@
             }, 5000);
         }
 
-        // Processar dados do Excel
+        // Mostrar/ocultar loading
+        function showLoading(show = true) {
+            const loading = document.getElementById('loadingIndicator');
+            if (show) {
+                loading.classList.add('show');
+            } else {
+                loading.classList.remove('show');
+            }
+        }
+
+        // Processar dados do Excel - FUNÇÃO CORRIGIDA
         function processExcelData(data) {
             try {
-                currentData = data.filter(row => 
-                    row.OPM && row.Viatura && row.Graduacao && row.Nome && row.Local
-                );
+                showLoading(true);
                 
-                if (currentData.length === 0) {
-                    throw new Error('Nenhum dado válido encontrado na planilha');
-                }
+                // Pequeno delay para garantir que o loading seja mostrado
+                setTimeout(() => {
+                    currentData = data.filter(row => 
+                        row.OPM && row.Viatura && row.Graduacao && row.Nome && row.Local
+                    );
+                    
+                    if (currentData.length === 0) {
+                        throw new Error('Nenhum dado válido encontrado na planilha');
+                    }
+                    
+                    // Atualizar o dashboard imediatamente após processar os dados
+                    updateDashboard();
+                    showAlert(`✅ Dados carregados com sucesso! ${currentData.length} registros processados.`);
+                    showLoading(false);
+                    
+                }, 100);
                 
-                updateDashboard();
-                showAlert(`✅ Dados carregados com sucesso! ${currentData.length} registros processados.`);
             } catch (error) {
                 showAlert(`❌ Erro ao processar dados: ${error.message}`, 'error');
+                showLoading(false);
             }
         }
 
@@ -667,8 +698,10 @@
             return { opmCount, gradCount, localCount };
         }
 
-        // Atualizar dashboard
+        // Atualizar dashboard - FUNÇÃO PRINCIPAL
         function updateDashboard() {
+            console.log('Atualizando dashboard...', currentData.length, 'registros');
+            
             const metrics = calculateMetrics();
             const distributions = calculateDistributions();
             
@@ -689,6 +722,11 @@
             
             // Animar métricas
             animateMetrics();
+            
+            // Atualizar data/hora
+            updateDateTime();
+            
+            console.log('Dashboard atualizado com sucesso!');
         }
 
         // Atualizar grid de locais
@@ -699,6 +737,11 @@
             const locaisArray = Object.entries(localCount)
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 8); // Top 8 locais
+            
+            if (locaisArray.length === 0) {
+                locaisGrid.innerHTML = '<div class="local-card" style="grid-column: 1 / -1; background: linear-gradient(135deg, #95a5a6, #7f8c8d);"><div class="local-nome">Nenhum local encontrado</div><div class="local-count">0</div><div class="local-desc">Carregue dados para visualizar</div></div>';
+                return;
+            }
             
             locaisArray.forEach(([local, count], index) => {
                 const localCard = document.createElement('div');
@@ -856,9 +899,13 @@
 
         // Carregar dados de exemplo
         function loadSampleData() {
-            currentData = sampleData;
-            updateDashboard();
-            showAlert('✅ Dados de exemplo carregados com sucesso!');
+            showLoading(true);
+            setTimeout(() => {
+                currentData = sampleData;
+                updateDashboard();
+                showAlert('✅ Dados de exemplo carregados com sucesso!');
+                showLoading(false);
+            }, 500);
         }
 
         // Exportar para Excel
@@ -893,7 +940,7 @@
                 `Última atualização: ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR')}`;
         }
 
-        // Event Listeners
+        // Event Listener para upload de arquivo - CORRIGIDO
         document.getElementById('fileInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -905,11 +952,21 @@
                     const workbook = XLSX.read(data, { type: 'array' });
                     const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                     const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                    
+                    // Processar os dados - isso vai automaticamente atualizar o dashboard
                     processExcelData(jsonData);
+                    
                 } catch (error) {
                     showAlert('❌ Erro ao ler arquivo: ' + error.message, 'error');
+                    showLoading(false);
                 }
             };
+            
+            reader.onerror = function() {
+                showAlert('❌ Erro ao ler o arquivo selecionado', 'error');
+                showLoading(false);
+            };
+            
             reader.readAsArrayBuffer(file);
             
             // Limpar input para permitir carregar o mesmo arquivo novamente
