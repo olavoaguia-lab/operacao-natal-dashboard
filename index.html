@@ -84,6 +84,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            text-decoration: none; /* Para garantir que o label não tenha sublinhado */
         }
 
         .btn:hover, .file-label:hover {
@@ -114,7 +115,7 @@
         /* Layout Principal */
         .dashboard-body {
             display: grid;
-            grid-template-columns: 1fr 3fr; /* Nova coluna para Controles/Filtros */
+            grid-template-columns: 1fr 3fr;
             gap: 20px;
         }
 
@@ -142,13 +143,13 @@
             background: white;
             padding: 20px;
             border-radius: 12px;
-            text-align: left; /* Alinhamento alterado para mais profissional */
+            text-align: left;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             transition: all 0.3s ease;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            border-left: 5px solid var(--accent-color); /* Destaque lateral */
+            border-left: 5px solid var(--accent-color);
         }
         
         .metric-card:hover {
@@ -232,7 +233,7 @@
 
         .chart-wrapper {
             position: relative;
-            height: 350px; /* Aumentado a altura do gráfico */
+            height: 350px;
             width: 100%;
         }
 
@@ -605,13 +606,13 @@
             { OPM: "BTL LESTE", Viatura: "VTR 1090", Graduacao: "Cap PM", Nome: "F. BATISTA", Local: "ÁREA COMERCIAL" },
             { OPM: "BTL LESTE", Viatura: "VTR 1090", Graduacao: "Cb PM", Nome: "RIBAMAR", Local: "ÁREA COMERCIAL" },
             { OPM: "BTL LESTE", Viatura: "VTR 1075", Graduacao: "Cad 1 PM", Nome: "C. FARIAS", Local: "ÁREA COMERCIAL" },
-            { OPM: "BTL LESTE", Viatura: "VTR 1075", Graduacao: "Cad 1 PM", Nome: "EMILY", Local: "ÁREA COMERCIAL" },
-            { OPM: "BTL LESTE", Viatura: "VTR 1075", Graduacao: "Cad 1 PM", Nome: "CASSIO BARROSO", Local: "ÁREA COMERCIAL" },
-            { OPM: "BTL LESTE", Viatura: "VTR 1075", Graduacao: "Sd PM", Nome: "BEATRIZ BLENDA", Local: "PRAÇA CENTRAL" },
-            { OPM: "BTL LESTE", Viatura: "VTR RMP", Graduacao: "ST PM", Nome: "JULIO CONCEICAO BRASIL", Local: "PRAÇA CENTRAL" },
-            { OPM: "BTL LESTE", Viatura: "VTR RMP", Graduacao: "Sd PM", Nome: "JOELZIMARA PARENTE", Local: "SETOR INDUSTRIAL" },
+            { OPM: "BTL LESTE", Viatura: "VTR 1075", Graduacao: "Cad 1 PM", Nome: "EMILY", Local: "PRAÇA CENTRAL" },
+            { OPM: "BTL LESTE", Viatura: "VTR 1075", Graduacao: "Cad 1 PM", Nome: "CASSIO BARROSO", Local: "PRAÇA CENTRAL" },
+            { OPM: "BTL LESTE", Viatura: "VTR 1075", Graduacao: "Sd PM", Nome: "BEATRIZ BLENDA", Local: "SETOR INDUSTRIAL" },
+            { OPM: "BTL LESTE", Viatura: "VTR RMP", Graduacao: "ST PM", Nome: "JULIO CONCEICAO BRASIL", Local: "SETOR INDUSTRIAL" },
+            { OPM: "BTL LESTE", Viatura: "VTR RMP", Graduacao: "Sd PM", Nome: "JOELZIMARA PARENTE", Local: "SHOPPING CIDADE LESTE" },
             { OPM: "BTL LESTE", Viatura: "POG", Graduacao: "1º Sgt PM", Nome: "DIEGO FRANÇA", Local: "SHOPPING CIDADE LESTE" },
-            { OPM: "BTL LESTE", Viatura: "POG", Graduacao: "Cb PM", Nome: "CELIO MACHADO", Local: "SHOPPING CIDADE LESTE" },
+            { OPM: "BTL LESTE", Viatura: "POG", Graduação: "Cb PM", Nome: "CELIO MACHADO", Local: "RODOVIÁRIA PRINCIPAL" },
             { OPM: "BTL SUL", Viatura: "VTR 2001", Graduacao: "Ten PM", Nome: "A. SANTOS", Local: "CENTRO FINANCEIRO" },
             { OPM: "BTL SUL", Viatura: "VTR 2001", Graduacao: "Sd PM", Nome: "MARIA LIMA", Local: "CENTRO FINANCEIRO" },
             { OPM: "BTL SUL", Viatura: "VTR 2010", Graduacao: "Cb PM", Nome: "C. ALMEIDA", Local: "RESIDENCIAL FLORES" },
@@ -620,19 +621,71 @@
 
         // Paleta de cores aprimorada (mais que 6)
         const chartColors = [
-            '#2196F3', '#00BCD4', '#4CAF50', '#FFC107', '#FF9800', '#E91E63', // Primárias
-            '#9C27B0', '#00E5FF', '#76FF03', '#FFD740', '#F57C00', '#D81B60'  // Secundárias
+            '#2196F3', '#00BCD4', '#4CAF50', '#FFC107', '#FF9800', '#E91E63',
+            '#9C27B0', '#00E5FF', '#76FF03', '#FFD740', '#F57C00', '#D81B60'
         ];
-
-        // Funções de utilidade (showAlert, showLoading, updateCurrentDate, animateMetrics, exportToExcel, updateDateTime) - Mantidas as do código original, mas com estilos aprimorados.
-        // ... (As funções originais devem ser incluídas aqui. Exemplo simplificado para concisão) ...
         
-        function showAlert(message, type = 'success') { /* ... */ }
-        function showLoading(show = true) { /* ... */ }
-        function updateCurrentDate() { /* ... */ }
-        function animateMetrics() { /* ... */ }
-        function exportToExcel() { /* ... */ }
-        function updateDateTime() { /* ... */ }
+        // --- FUNÇÕES DE UTILIDADE E ALERTA ---
+        
+        function showAlert(message, type = 'success') {
+            const container = document.getElementById('alertContainer');
+            container.innerHTML = ''; // Limpar alertas anteriores
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.innerHTML = message;
+            container.appendChild(alertDiv);
+            
+            // Auto-remover após 5 segundos
+            setTimeout(() => {
+                alertDiv.style.opacity = 0;
+                setTimeout(() => container.removeChild(alertDiv), 500);
+            }, 5000);
+        }
+
+        function showLoading(show = true) {
+            document.getElementById('loadingIndicator').classList.toggle('show', show);
+        }
+
+        function updateCurrentDate() {
+            const dateElement = document.getElementById('currentDate');
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            dateElement.textContent = `Batalhão Leste - Dados de ${new Date().toLocaleDateString('pt-BR', dateOptions)}`;
+        }
+
+        function updateDateTime() {
+            const timeElement = document.getElementById('updateTime');
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            const dateString = now.toLocaleDateString('pt-BR');
+            timeElement.textContent = `Última Atualização: ${dateString} ${timeString}`;
+        }
+        
+        function animateMetrics() {
+            document.querySelectorAll('.metric-value').forEach(el => {
+                const target = parseInt(el.textContent);
+                if (!isNaN(target)) {
+                    el.textContent = '0';
+                    const start = 0;
+                    const duration = 1500;
+                    let startTime;
+                    
+                    const step = (timestamp) => {
+                        if (!startTime) startTime = timestamp;
+                        const progress = timestamp - startTime;
+                        const value = Math.floor(start + (target * (progress / duration)));
+                        el.textContent = (value > target ? target : value).toLocaleString();
+                        if (progress < duration) {
+                            window.requestAnimationFrame(step);
+                        } else {
+                            el.textContent = target.toLocaleString();
+                        }
+                    };
+                    window.requestAnimationFrame(step);
+                }
+            });
+        }
+        
+        // --- FUNÇÕES DE PROCESSAMENTO DE DADOS ---
 
         // Nova função: Atualizar Filtros
         function updateFilters() {
@@ -654,7 +707,16 @@
 
             // Adicionar Graduações
             const graduacoes = [...new Set(fullData.map(row => row.Graduacao))].sort();
-            graduacoes.forEach(grad => {
+            // Ordem das graduações (pode ser ajustada para ordem hierárquica)
+            const order = ["Cap PM", "Ten PM", "ST PM", "1º Sgt PM", "Cb PM", "Sd PM", "Cad 1 PM"]; 
+            graduacoes.sort((a, b) => {
+                const indexA = order.indexOf(a);
+                const indexB = order.indexOf(b);
+                if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+                if (indexA === -1) return 1;
+                if (indexB === -1) return -1;
+                return indexA - indexB;
+            }).forEach(grad => {
                 const option = document.createElement('option');
                 option.value = grad;
                 option.textContent = grad;
@@ -675,22 +737,23 @@
             
             forceDashboardUpdate();
         }
-        
+
         // Processar dados após carregamento (Melhoria: Usa fullData)
         function processExcelData(jsonData) {
-            // ... (Lógica de processamento e validação mantida do original) ...
             
-            // Exemplo de lógica principal
+            const requiredFields = ['OPM', 'Viatura', 'Graduacao', 'Nome', 'Local'];
+
+            // Mapeamento e Padronização de Colunas (para aceitar diferentes cabeçalhos)
             fullData = jsonData.map(row => ({
-                OPM: row.OPM || row.opm || '',
+                OPM: row.OPM || row.opm || row.Unidade || '',
                 Viatura: row.Viatura || row.viatura || row['Prefixo VTR'] || '',
                 Graduacao: row.Graduacao || row.graduacao || row.Grad || '',
                 Nome: row.Nome || row.nome || '',
-                Local: (row.Local || row.local || '').toUpperCase() // Padronização do Local
-            })).filter(row => row.OPM && row.Viatura && row.Graduacao && row.Nome && row.Local);
+                Local: (row.Local || row.local || row['Local de Atuação'] || '').toUpperCase()
+            })).filter(row => requiredFields.every(field => row[field])); // Garante que todos os campos obrigatórios estejam preenchidos
 
             if (fullData.length === 0) {
-                throw new Error('Nenhum dado válido encontrado.');
+                throw new Error('Nenhum dado válido encontrado após a filtragem. Verifique os cabeçalhos da planilha.');
             }
             
             currentData = fullData; // Inicialmente, todos os dados são os atuais
@@ -700,16 +763,19 @@
             showLoading(false);
         }
 
-        // Função FORÇADA para atualizar dashboard (Melhorada para usar currentData)
-        function forceDashboardUpdate() {
-            // ... (Funções originais de atualização, adaptadas para currentData) ...
-            updateBasicMetrics();
-            updateDetailsTable();
-            updateLocaisDisplay();
-            updateAllCharts();
-            animateMetrics();
+        function updateBasicMetrics() {
+            document.getElementById('efetivoAtivo').textContent = currentData.length;
+
+            const viaturas = [...new Set(currentData.map(row => row.Viatura))];
+            document.getElementById('totalViaturas').textContent = viaturas.length;
+
+            const opms = [...new Set(currentData.map(row => row.OPM))];
+            document.getElementById('opmsAtuacao').textContent = opms.length;
+
+            const locais = [...new Set(currentData.map(row => row.Local))];
+            document.getElementById('locaisAtuacao').textContent = locais.length;
         }
-        
+
         // Atualizar display de locais (Melhoria: Adiciona a lógica do TOP N)
         function updateLocaisDisplay() {
             const locaisGrid = document.getElementById('locaisGrid');
@@ -726,7 +792,6 @@
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, topN); // Aplica o filtro TOP N
             
-            // ... (Resto da lógica de exibição dos cartões) ...
             if (locaisArray.length === 0) {
                 locaisGrid.innerHTML = '<div class="local-card" style="grid-column: 1 / -1; background: linear-gradient(135deg, #95a5a6, #7f8c8d);"><div class="local-nome">Nenhum local encontrado</div><div class="local-count">0</div><div class="local-desc">Sem dados para o filtro aplicado.</div></div>';
                 return;
@@ -735,8 +800,10 @@
             locaisArray.forEach(([local, count], index) => {
                 const localCard = document.createElement('div');
                 localCard.className = 'local-card';
-                // Usar cores específicas para o local
-                localCard.style.background = `linear-gradient(135deg, ${chartColors[index % chartColors.length]} 0%, ${chartColors[(index + 1) % chartColors.length]} 100%)`;
+                
+                // Usar cores específicas baseadas no index
+                const colorIndex = index % chartColors.length;
+                localCard.style.background = `linear-gradient(135deg, ${chartColors[colorIndex]} 0%, ${chartColors[(colorIndex + 1) % chartColors.length]} 100%)`;
                 
                 localCard.innerHTML = `
                     <div class="local-nome">${local}</div>
@@ -747,22 +814,162 @@
                 locaisGrid.appendChild(localCard);
             });
         }
+        
+        function updateDetailsTable() {
+            const tbody = document.getElementById('detalhesTableBody');
+            tbody.innerHTML = ''; // Limpar tabela
 
+            if (currentData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 40px; color: #7f8c8d;">
+                            Nenhum dado encontrado para o filtro aplicado.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
 
-        // Carregar dados de exemplo (Atualizado para usar fullData)
+            currentData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.OPM}</td>
+                    <td>${row.Viatura}</td>
+                    <td>${row.Graduacao}</td>
+                    <td>${row.Nome}</td>
+                    <td>${row.Local}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        function getChartData(key) {
+            const counts = {};
+            currentData.forEach(row => {
+                const value = row[key];
+                counts[value] = (counts[value] || 0) + 1;
+            });
+
+            const labels = Object.keys(counts);
+            const data = Object.values(counts);
+            
+            // Ordenar por valor descendente
+            const sorted = labels.map((label, index) => ({ label, data: data[index] }))
+                                 .sort((a, b) => b.data - a.data);
+            
+            return {
+                labels: sorted.map(item => item.label),
+                data: sorted.map(item => item.data),
+            };
+        }
+        
+        function createOrUpdateChart(chartId, key, type, title) {
+            if (charts[chartId]) {
+                charts[chartId].destroy(); // Destruir gráfico existente
+            }
+            
+            const data = getChartData(key);
+            const ctx = document.getElementById(chartId).getContext('2d');
+            
+            const backgroundColors = data.labels.map((_, index) => chartColors[index % chartColors.length]);
+            const borderColors = backgroundColors.map(color => color.replace(')', ', 0.8)')); // Levemente mais escuro
+            
+            charts[chartId] = new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: title,
+                        data: data.data,
+                        backgroundColor: backgroundColors,
+                        borderColor: type === 'bar' ? borderColors : backgroundColors,
+                        borderWidth: type === 'bar' ? 1 : 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: type === 'pie' || type === 'doughnut',
+                            position: 'bottom',
+                            labels: {
+                                color: '#333'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed.toLocaleString('pt-BR');
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: type === 'bar' ? {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                precision: 0,
+                                color: '#555'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#555'
+                            }
+                        }
+                    } : {}
+                }
+            });
+        }
+        
+        function updateAllCharts() {
+            // Atualiza o gráfico de OPMs (Barras para melhor comparação)
+            createOrUpdateChart('opmChart', 'OPM', 'bar', 'Efetivo por OPM');
+            
+            // Atualiza o gráfico de Graduações (Rosca para distribuição de proporção)
+            createOrUpdateChart('graduacaoChart', 'Graduacao', 'doughnut', 'Proporção por Graduação');
+        }
+
+        function forceDashboardUpdate() {
+            updateBasicMetrics();
+            updateDetailsTable();
+            updateLocaisDisplay();
+            updateAllCharts();
+            animateMetrics();
+            updateDateTime();
+        }
+
+        // --- INTERAÇÃO DO USUÁRIO ---
+        
+        // Carregar dados de exemplo
         function loadSampleData() {
             showLoading(true);
             setTimeout(() => {
-                fullData = sampleData;
-                currentData = fullData;
-                updateFilters();
-                forceDashboardUpdate();
-                showAlert('✅ Dados de exemplo carregados com sucesso!');
+                try {
+                    processExcelData(sampleData);
+                    showAlert('✅ Dados de exemplo carregados com sucesso!');
+                } catch(e) {
+                    showAlert('❌ Erro ao carregar dados de exemplo: ' + e.message, 'error');
+                }
                 showLoading(false);
             }, 500);
         }
 
-        // Limpar dados (Atualizado para fullData e currentData)
+        // Limpar dados
         function clearData() {
             fullData = [];
             currentData = [];
@@ -771,6 +978,65 @@
             showAlert('🗑️ Dados limpos com sucesso!');
         }
 
+        // Exportar para Excel
+        function exportToExcel() {
+            if (currentData.length === 0) {
+                showAlert('⚠️ Nenhum dado para exportar.', 'error');
+                return;
+            }
+            
+            const ws = XLSX.utils.json_to_sheet(currentData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Relatorio Filtrado");
+            XLSX.writeFile(wb, "Dashboard_Relatorio_Exportado.xlsx");
+            
+            showAlert('⬇️ Relatório exportado com sucesso!');
+        }
+        
+        // --- INICIALIZAÇÃO ---
+        
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            showLoading(true);
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // Converter para JSON
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    if (jsonData.length === 0) {
+                        throw new Error('A planilha está vazia ou não contém dados');
+                    }
+                    
+                    // Processar dados
+                    processExcelData(jsonData);
+                    
+                } catch (error) {
+                    console.error('❌ Erro na leitura:', error);
+                    showAlert('❌ Erro ao ler arquivo: ' + error.message, 'error');
+                    showLoading(false);
+                }
+            };
+            
+            reader.onerror = function(error) {
+                console.error('❌ Erro no FileReader:', error);
+                showAlert('❌ Erro ao ler o arquivo selecionado', 'error');
+                showLoading(false);
+            };
+            
+            reader.readAsArrayBuffer(file);
+        });
+
         // Inicialização
         document.addEventListener('DOMContentLoaded', function() {
             updateCurrentDate();
@@ -778,7 +1044,6 @@
             setInterval(updateDateTime, 60000);
             loadSampleData(); // Carregar dados de exemplo automaticamente
         });
-        
     </script>
 </body>
 </html>
