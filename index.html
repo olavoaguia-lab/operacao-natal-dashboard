@@ -313,280 +313,279 @@
     </div>
 
     <script>
-        // Variáveis globais
-        let currentData = [];
         let currentCharts = {};
 
-        // Inicialização quando a página carrega
-        document.addEventListener('DOMContentLoaded', function() {
-            // Configurar o listener para o input de arquivo
-            document.getElementById('fileInput').addEventListener('change', processFiles);
-            
-            // Carregar dados de exemplo automaticamente
-            loadSampleData();
-        });
+function showDebugInfo(message, type = 'info') {
+    const debugDiv = document.getElementById('debugInfo');
+    debugDiv.innerHTML = message;
+    debugDiv.className = 'debug-info ' + type;
+    debugDiv.style.display = 'block';
+}
 
-        // Função para exibir informações de debug
-        function showDebugInfo(message, type = 'info') {
-            const debugDiv = document.getElementById('debugInfo');
-            debugDiv.textContent = message;
-            debugDiv.style.display = 'block';
-            
-            // Cor baseada no tipo de mensagem
-            if (type === 'error') {
-                debugDiv.style.background = '#ffebee';
-                debugDiv.style.color = '#c62828';
-                debugDiv.style.borderLeft = '4px solid #f44336';
-            } else if (type === 'success') {
-                debugDiv.style.background = '#e8f5e9';
-                debugDiv.style.color = '#2e7d32';
-                debugDiv.style.borderLeft = '4px solid #4caf50';
-            } else {
-                debugDiv.style.background = '#e3f2fd';
-                debugDiv.style.color = '#1565c0';
-                debugDiv.style.borderLeft = '4px solid #2196f3';
-            }
-            
-            // Auto-esconder após 5 segundos para mensagens de info
-            if (type === 'info') {
-                setTimeout(() => {
-                    debugDiv.style.display = 'none';
-                }, 5000);
-            }
-        }
+function loadSampleData() {
+    showDebugInfo('📱 Carregando dados de exemplo...', 'info');
+    
+    const sampleData = [
+        { opm: "BTL LESTE", viatura: "VTR 1090", graduacao: "Cap PM", nome: "F. BATISTA", local: "área comercial" },
+        { opm: "BTL LESTE", viatura: "VTR 1090", graduacao: "Cb PM", nome: "RIBAMAR", local: "área comercial" },
+        { opm: "BTL LESTE", viatura: "VTR 1075", graduacao: "Cad 1 PM", nome: "C. FARIAS", local: "área comercial" }
+    ];
+    
+    processExcelData(sampleData);
+    showDebugInfo('✅ Dashboard carregado!', 'success');
+}
 
-        // Função para carregar dados de exemplo
-        function loadSampleData() {
-            showDebugInfo("Carregando dados de exemplo...", "info");
+function processFile() {
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        showDebugInfo('❌ Selecione um arquivo Excel.', 'error');
+        return;
+    }
+    
+    showDebugInfo('📁 Processando arquivo...', 'info');
+    
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
             
-            // Dados de exemplo
-            const sampleData = [
-                { opm: "BTL LESTE", viatura: "VTR 1089", graduacao: "Cb PM", nome: "F. BATISTA", local: "área comercial" },
-                { opm: "BTL LESTE", viatura: "VTR 1090", graduacao: "Cb PM", nome: "RIBAMAR", local: "área comercial" },
-                { opm: "BTL LESTE", viatura: "VTR 1091", graduacao: "Cad I PM", nome: "C. FARIAS", local: "área comercial" },
-                { opm: "BTL OESTE", viatura: "VTR 2015", graduacao: "Sgt PM", nome: "A. SILVA", local: "patrulha rural" },
-                { opm: "BTL OESTE", viatura: "VTR 2016", graduacao: "Cb PM", nome: "M. SANTOS", local: "patrulha rural" },
-                { opm: "BTL NORTE", viatura: "VTR 3050", graduacao: "3º Sgt PM", nome: "R. OLIVEIRA", local: "área residencial" },
-                { opm: "BTL NORTE", viatura: "VTR 3051", graduacao: "Cb PM", nome: "J. COSTA", local: "área residencial" },
-                { opm: "BTL SUL", viatura: "VTR 4020", graduacao: "2º Sgt PM", nome: "L. FERREIRA", local: "centro urbano" },
-                { opm: "BTL SUL", viatura: "VTR 4021", graduacao: "Cb PM", nome: "P. RODRIGUES", local: "centro urbano" }
-            ];
+            let allData = [];
             
-            // Processar os dados
-            processExcelData(sampleData);
-            showDebugInfo("Dashboard carregado com dados de exemplo. Use dois dedos para dar zoom nos gráficos.", "success");
-        }
-
-        // Função para processar arquivos Excel
-        function processFiles() {
-            const fileInput = document.getElementById('fileInput');
-            const file = fileInput.files[0];
+            workbook.SheetNames.forEach((sheetName) => {
+                const worksheet = workbook.Sheets[sheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                
+                if (jsonData.length > 1) {
+                    const processedData = processSheetData(jsonData);
+                    allData = allData.concat(processedData);
+                }
+            });
             
-            if (!file) {
-                showDebugInfo("Selecione um arquivo Excel!", "error");
+            showDebugInfo(`📊 ${allData.length} militares encontrados`, 'info');
+            
+            if (allData.length === 0) {
+                showDebugInfo('❌ Nenhum militar encontrado.', 'error');
                 return;
             }
             
-            showDebugInfo("Processando arquivo...", "info");
+            processExcelData(allData);
+            showDebugInfo(`✅ ${allData.length} militares carregados`, 'success');
             
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    
-                    // Obter a primeira planilha
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-                    
-                    // Processar os dados
-                    processExcelData(jsonData);
-                    showDebugInfo("Arquivo processado com sucesso!", "success");
-                } catch (error) {
-                    showDebugInfo("Erro ao processar arquivo: " + error.message, "error");
-                }
+        } catch (error) {
+            showDebugInfo('❌ Erro: ' + error.message, 'error');
+        }
+    };
+    
+    reader.readAsArrayBuffer(file);
+}
+
+function processSheetData(sheetData) {
+    const data = [];
+    if (sheetData.length < 2) return data;
+    
+    const headers = sheetData[0].map(h => h ? h.toString().trim() : '');
+    
+    const findColumn = (patterns) => {
+        for (let pattern of patterns) {
+            const index = headers.findIndex(header => 
+                header && header.toString().toLowerCase().includes(pattern.toLowerCase())
+            );
+            if (index !== -1) return index;
+        }
+        return -1;
+    };
+    
+    const opmIndex = findColumn(['opm', 'unidade']);
+    const viaturaIndex = findColumn(['vtr', 'viatura', 'prefixo']);
+    const graduacaoIndex = findColumn(['grad', 'graduacao', 'posto']);
+    const nomeIndex = findColumn(['nome', 'militar']);
+    const localIndex = findColumn(['local', 'área', 'area']);
+    
+    let currentOpm = '';
+    let currentViatura = '';
+    let currentLocal = '';
+    
+    for (let i = 1; i < sheetData.length; i++) {
+        const row = sheetData[i];
+        if (!row || row.length === 0) continue;
+        
+        if (row.every(cell => !cell || cell.toString().trim() === '')) continue;
+        
+        if (opmIndex !== -1 && row[opmIndex] && row[opmIndex].toString().trim() !== '') {
+            currentOpm = row[opmIndex].toString().trim();
+        }
+        
+        if (viaturaIndex !== -1 && row[viaturaIndex] && row[viaturaIndex].toString().trim() !== '') {
+            currentViatura = row[viaturaIndex].toString().trim();
+        }
+        
+        if (localIndex !== -1 && row[localIndex] && row[localIndex].toString().trim() !== '') {
+            currentLocal = row[localIndex].toString().trim();
+        }
+        
+        const nome = nomeIndex !== -1 ? (row[nomeIndex] || '').toString().trim() : '';
+        const graduacao = graduacaoIndex !== -1 ? (row[graduacaoIndex] || '').toString().trim() : '';
+        
+        if (nome !== '' && graduacao !== '') {
+            const item = {
+                opm: currentOpm,
+                viatura: currentViatura,
+                graduacao: graduacao,
+                nome: nome,
+                local: currentLocal
             };
             
-            reader.readAsArrayBuffer(file);
+            data.push(item);
         }
+    }
+    
+    return data;
+}
 
-        // Função para processar dados do Excel
-        function processExcelData(data) {
-            currentData = data;
-            
-            // Atualizar a tabela
-            updateDataTable();
-            
-            // Atualizar estatísticas
-            updateStats();
-            
-            // Atualizar gráficos
-            updateCharts();
-        }
+function processExcelData(data) {
+    Object.values(currentCharts).forEach(chart => {
+        if (chart && chart.destroy) chart.destroy();
+    });
+    currentCharts = {};
+    
+    document.getElementById('total-militares').textContent = data.length;
+    
+    const unidades = [...new Set(data.map(item => item.opm))].filter(opm => opm && opm.trim() !== '');
+    document.getElementById('total-unidades').textContent = unidades.length;
+    
+    const viaturas = [...new Set(data.map(item => item.viatura))].filter(vtr => vtr && vtr.trim() !== '');
+    document.getElementById('total-viaturas').textContent = viaturas.length;
+    
+    const areas = [...new Set(data.map(item => item.local))].filter(local => local && local.trim() !== '');
+    document.getElementById('total-areas').textContent = areas.length;
+    
+    const tableBody = document.getElementById('table-body');
+    tableBody.innerHTML = '';
+    data.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${item.opm}</td>
+            <td>${item.viatura}</td>
+            <td>${item.graduacao}</td>
+            <td>${item.nome}</td>
+            <td>${item.local}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+    
+    const graduacaoCount = {};
+    const unidadeCount = {};
+    const viaturaCount = {};
+    const areaCount = {};
+    
+    data.forEach(item => {
+        graduacaoCount[item.graduacao] = (graduacaoCount[item.graduacao] || 0) + 1;
+        unidadeCount[item.opm] = (unidadeCount[item.opm] || 0) + 1;
+        
+        let tipoViatura = 'Outros';
+        if (item.viatura.includes('VTR')) tipoViatura = 'VTR';
+        else if (item.viatura.includes('POG')) tipoViatura = 'POG';
+        viaturaCount[tipoViatura] = (viaturaCount[tipoViatura] || 0) + 1;
+        
+        areaCount[item.local] = (areaCount[item.local] || 0) + 1;
+    });
+    
+    document.getElementById('dashboard-content').classList.remove('hidden');
+    createCharts(graduacaoCount, unidadeCount, viaturaCount, areaCount);
+}
 
-        // Função para atualizar a tabela de dados
-        function updateDataTable() {
-            const tableBody = document.getElementById('tableBody');
-            tableBody.innerHTML = '';
-            
-            currentData.forEach(item => {
-                const row = document.createElement('tr');
-                
-                row.innerHTML = `
-                    <td>${item.opm || 'N/A'}</td>
-                    <td>${item.viatura || 'N/A'}</td>
-                    <td>${item.graduacao || 'N/A'}</td>
-                    <td>${item.nome || 'N/A'}</td>
-                    <td>${item.local || 'N/A'}</td>
-                `;
-                
-                tableBody.appendChild(row);
-            });
-        }
-
-        // Função para atualizar as estatísticas
-        function updateStats() {
-            // Total de viaturas únicas
-            const vehicles = [...new Set(currentData.map(item => item.viatura))];
-            document.getElementById('totalVehicles').textContent = vehicles.length;
-            
-            // Total de efetivo
-            document.getElementById('totalPersonnel').textContent = currentData.length;
-            
-            // OPMs únicas
-            const opms = [...new Set(currentData.map(item => item.opm))];
-            document.getElementById('totalOPMs').textContent = opms.length;
-            
-            // Locais únicos
-            const locations = [...new Set(currentData.map(item => item.local))];
-            document.getElementById('totalLocations').textContent = locations.length;
-        }
-
-        // Função para atualizar os gráficos
-        function updateCharts() {
-            // Destruir gráficos existentes
-            Object.values(currentCharts).forEach(chart => {
-                if (chart) chart.destroy();
-            });
-            
-            // Dados para os gráficos
-            const opmCounts = countBy(currentData, 'opm');
-            const graduationCounts = countBy(currentData, 'graduacao');
-            const locationCounts = countBy(currentData, 'local');
-            
-            // Cores para os gráficos
-            const colors = [
-                '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
-                '#858796', '#5a5c69', '#6f42c1', '#e83e8c', '#fd7e14'
-            ];
-            
-            // Gráfico de OPMs
-            const opmCtx = document.getElementById('opmChart').getContext('2d');
-            currentCharts.opm = new Chart(opmCtx, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(opmCounts),
-                    datasets: [{
-                        label: 'Efetivo por OPM',
-                        data: Object.values(opmCounts),
-                        backgroundColor: colors.slice(0, Object.keys(opmCounts).length),
-                        borderColor: colors.slice(0, Object.keys(opmCounts).length).map(color => color.replace('0.7', '1')),
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                precision: 0
-                            }
-                        }
-                    }
+function createCharts(graduacaoCount, unidadeCount, viaturaCount, areaCount) {
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    boxWidth: 12,
+                    font: { size: 10 }
                 }
-            });
-            
-            // Gráfico de Graduações
-            const graduationCtx = document.getElementById('graduationChart').getContext('2d');
-            currentCharts.graduation = new Chart(graduationCtx, {
-                type: 'pie',
-                data: {
-                    labels: Object.keys(graduationCounts),
-                    datasets: [{
-                        data: Object.values(graduationCounts),
-                        backgroundColor: colors.slice(0, Object.keys(graduationCounts).length),
-                        borderColor: '#fff',
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right'
-                        }
-                    }
-                }
-            });
-            
-            // Gráfico de Locais
-            const locationCtx = document.getElementById('locationChart').getContext('2d');
-            currentCharts.location = new Chart(locationCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(locationCounts),
-                    datasets: [{
-                        data: Object.values(locationCounts),
-                        backgroundColor: colors.slice(0, Object.keys(locationCounts).length),
-                        borderColor: '#fff',
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right'
-                        }
-                    }
-                }
-            });
-        }
-
-        // Função auxiliar para contar ocorrências por propriedade
-        function countBy(array, property) {
-            return array.reduce((counts, item) => {
-                const key = item[property] || 'N/A';
-                counts[key] = (counts[key] || 0) + 1;
-                return counts;
-            }, {});
-        }
-
-        // Função para exportar dados
-        function exportData() {
-            if (currentData.length === 0) {
-                showDebugInfo("Não há dados para exportar!", "error");
-                return;
             }
-            
-            // Criar uma nova planilha
-            const ws = XLSX.utils.json_to_sheet(currentData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Dados PM");
-            
-            // Exportar para Excel
-            XLSX.writeFile(wb, "dados_pm_exportados.xlsx");
-            showDebugInfo("Dados exportados com sucesso!", "success");
         }
-    </script>
-</body>
-</html>
+    };
+    
+    const ctx1 = document.getElementById('graduacaoChart').getContext('2d');
+    currentCharts.graduacao = new Chart(ctx1, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(graduacaoCount),
+            datasets: [{
+                data: Object.values(graduacaoCount),
+                backgroundColor: ['#1a3d7c', '#2a9d8f', '#e63946', '#f4a261', '#e9c46a'],
+                borderWidth: 1
+            }]
+        },
+        options: chartOptions
+    });
+    
+    const ctx2 = document.getElementById('unidadeChart').getContext('2d');
+    currentCharts.unidade = new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(unidadeCount),
+            datasets: [{
+                label: 'Militares',
+                data: Object.values(unidadeCount),
+                backgroundColor: '#1a3d7c'
+            }]
+        },
+        options: {
+            ...chartOptions,
+            scales: {
+                y: { 
+                    beginAtZero: true, 
+                    ticks: { stepSize: 1 } 
+                }
+            }
+        }
+    });
+    
+    const ctx3 = document.getElementById('viaturaChart').getContext('2d');
+    currentCharts.viatura = new Chart(ctx3, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(viaturaCount),
+            datasets: [{
+                data: Object.values(viaturaCount),
+                backgroundColor: ['#1a3d7c', '#e63946', '#2a9d8f']
+            }]
+        },
+        options: chartOptions
+    });
+    
+    const ctx4 = document.getElementById('areaChart').getContext('2d');
+    currentCharts.area = new Chart(ctx4, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(areaCount).slice(0, 8),
+            datasets: [{
+                label: 'Militares',
+                data: Object.values(areaCount).slice(0, 8),
+                backgroundColor: '#2a9d8f'
+            }]
+        },
+        options: {
+            ...chartOptions,
+            indexAxis: 'y',
+            scales: {
+                x: { 
+                    beginAtZero: true, 
+                    ticks: { stepSize: 1 } 
+                }
+            }
+        }
+    });
+}
+
+window.onload = function() {
+    showDebugInfo('📱 Dashboard Operação Natal\n\n💡 Use "Dados de Exemplo" para testar', 'info');
+};
