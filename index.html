@@ -1,649 +1,288 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Operação Natal - PM</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <style>
-        :root {
-            --primary-color: #1a3d7c;
-            --secondary-color: #e63946;
-            --accent-color: #2a9d8f;
-            --light-color: #f1faee;
-            --dark-color: #1d3557;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        body {
-            background-color: #f5f7fa;
-            color: #333;
-            padding: 15px;
-            min-height: 100vh;
-        }
-        
-        .dashboard-header {
-            background: linear-gradient(135deg, var(--primary-color), var(--dark-color));
-            color: white;
-            padding: 20px 15px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
-        
-        .dashboard-title {
-            font-size: 1.5em;
-            font-weight: 700;
-            margin-bottom: 8px;
-            line-height: 1.3;
-        }
-        
-        .dashboard-subtitle {
-            font-size: 0.9em;
-            opacity: 0.9;
-        }
-        
-        .upload-section {
-            background: white;
-            padding: 20px 15px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-            text-align: center;
-        }
-        
-        .file-input {
-            margin: 15px 0;
-            padding: 12px;
-            border: 2px dashed #ccc;
-            border-radius: 8px;
-            width: 100%;
-            font-size: 16px; /* Melhora zoom no iOS */
-        }
-        
-        .btn {
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 14px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            transition: all 0.3s;
-            margin: 8px 5px;
-            display: inline-block;
-            width: calc(50% - 10px);
-            min-width: 140px;
-        }
-        
-        .btn:hover {
-            background: var(--dark-color);
-        }
-        
-        .btn-secondary {
-            background: var(--accent-color);
-        }
-        
-        .kpi-container {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .kpi-card {
-            background: white;
-            border-radius: 10px;
-            padding: 15px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-            text-align: center;
-            transition: transform 0.3s ease;
-        }
-        
-        .kpi-card:hover {
-            transform: translateY(-3px);
-        }
-        
-        .kpi-value {
-            font-size: 1.8em;
-            font-weight: 700;
-            color: var(--primary-color);
-            margin: 8px 0;
-        }
-        
-        .kpi-label {
-            font-size: 0.8em;
-            color: #666;
-            font-weight: 600;
-        }
-        
-        .charts-container {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .chart-card {
-            background: white;
-            border-radius: 10px;
-            padding: 15px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-            overflow: hidden;
-        }
-        
-        .chart-title {
-            font-size: 1.1em;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: var(--dark-color);
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-            text-align: center;
-        }
-        
-        .chart-container {
-            position: relative;
-            height: 300px;
-            width: 100%;
-        }
-        
-        .data-table {
-            background: white;
-            border-radius: 10px;
-            padding: 15px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch; /* Melhor scroll no iOS */
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 600px;
-            font-size: 0.9em;
-        }
-        
-        th, td {
-            padding: 10px 12px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-        
-        th {
-            background-color: var(--primary-color);
-            color: white;
-            font-weight: 600;
-            font-size: 0.9em;
-        }
-        
-        tr:hover {
-            background-color: #f9f9f9;
-        }
-        
-        .footer {
-            text-align: center;
-            margin-top: 25px;
-            color: #666;
-            font-size: 0.8em;
-            padding: 15px;
-            border-top: 1px solid #eee;
-        }
-        
-        .hidden {
-            display: none;
-        }
-        
-        .debug-info {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 15px 0;
-            font-size: 0.9em;
-            white-space: pre-wrap;
-            text-align: left;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        
-        .success {
-            background: #e8f5e8;
-            border-color: #4caf50;
-            color: #2e7d32;
-        }
-        
-        .error {
-            background: #ffebee;
-            border-color: #f44336;
-            color: #c62828;
-        }
+let currentCharts = {};
 
-        /* Melhorias para mobile */
-        @media (max-width: 480px) {
-            body {
-                padding: 10px;
-            }
-            
-            .dashboard-title {
-                font-size: 1.3em;
-            }
-            
-            .kpi-container {
-                grid-template-columns: 1fr;
-                gap: 10px;
-            }
-            
-            .kpi-value {
-                font-size: 1.5em;
-            }
-            
-            .btn {
-                width: 100%;
-                margin: 5px 0;
-            }
-            
-            .chart-container {
-                height: 250px;
-            }
-            
-            th, td {
-                padding: 8px 10px;
-                font-size: 0.85em;
-            }
-        }
+function showDebugInfo(message, type = 'info') {
+    const debugDiv = document.getElementById('debugInfo');
+    debugDiv.innerHTML = message;
+    debugDiv.className = 'debug-info ' + type;
+    debugDiv.style.display = 'block';
+}
 
-        @media (max-width: 768px) and (min-width: 481px) {
-            .kpi-container {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .charts-container {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Melhorias de usabilidade para touch */
-        .btn {
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
-        }
-        
-        .file-input {
-            -webkit-tap-highlight-color: transparent;
-        }
-    </style>
-</head>
-<body>
-    <div class="dashboard-header">
-        <h1 class="dashboard-title">📊 Operação Natal</h1>
-        <p class="dashboard-subtitle">Dashboard de Policiamento - PM</p>
-    </div>
+function loadSampleData() {
+    showDebugInfo('📱 Carregando dados de exemplo...', 'info');
     
-    <div class="upload-section">
-        <h3>📤 Carregar Planilha</h3>
-        <input type="file" id="fileInput" class="file-input" accept=".xlsx, .xls">
-        <div>
-            <button class="btn" onclick="processFile()">Atualizar Dashboard</button>
-            <button class="btn btn-secondary" onclick="loadSampleData()">Dados de Exemplo</button>
-        </div>
-        
-        <div id="debugInfo" class="debug-info">
-👋 Bem-vindo ao Dashboard Operação Natal!
-
-📱 OTIMIZADO PARA CELULAR
-
-Como usar:
-1. Clique em "Dados de Exemplo" para testar
-2. Ou carregue sua planilha Excel
-3. Role para ver todos os gráficos
-        </div>
-    </div>
+    const sampleData = [
+        { opm: "BTL LESTE", viatura: "VTR 1090", graduacao: "Cap PM", nome: "F. BATISTA", local: "área comercial" },
+        { opm: "BTL LESTE", viatura: "VTR 1090", graduacao: "Cb PM", nome: "RIBAMAR", local: "área comercial" },
+        { opm: "BTL LESTE", viatura: "VTR 1075", graduacao: "Cad 1 PM", nome: "C. FARIAS", local: "área comercial" }
+    ];
     
-    <div id="dashboard-content" class="hidden">
-        <div class="kpi-container">
-            <div class="kpi-card">
-                <div class="kpi-label">Total de Militares</div>
-                <div class="kpi-value" id="total-militares">0</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">Unidades</div>
-                <div class="kpi-value" id="total-unidades">0</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">Viaturas</div>
-                <div class="kpi-value" id="total-viaturas">0</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">Áreas</div>
-                <div class="kpi-value" id="total-areas">0</div>
-            </div>
-        </div>
-        
-        <div class="charts-container">
-            <div class="chart-card">
-                <div class="chart-title">Posto/Graduação</div>
-                <div class="chart-container">
-                    <canvas id="graduacaoChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <div class="chart-title">Militares por Unidade</div>
-                <div class="chart-container">
-                    <canvas id="unidadeChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <div class="chart-title">Tipos de Viatura</div>
-                <div class="chart-container">
-                    <canvas id="viaturaChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <div class="chart-title">Áreas de Atuação</div>
-                <div class="chart-container">
-                    <canvas id="areaChart"></canvas>
-                </div>
-            </div>
-        </div>
-        
-        <div class="data-table">
-            <div class="chart-title">Detalhamento do Efetivo</div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>OPM</th>
-                        <th>Viatura</th>
-                        <th>Posto</th>
-                        <th>Nome</th>
-                        <th>Local</th>
-                    </tr>
-                </thead>
-                <tbody id="table-body"></tbody>
-            </table>
-        </div>
-    </div>
-    
-    <div class="footer">
-        <p>Dashboard Operação Natal - Versão Mobile</p>
-    </div>
+    processExcelData(sampleData);
+    showDebugInfo('✅ Dashboard carregado!\n\n📱 Use dois dedos para dar zoom nos gráficos', 'success');
+}
 
-    <script>
-        // JavaScript permanece o MESMO - já é responsivo
-        let currentCharts = {};
-        
-        function showDebugInfo(message, type = 'info') {
-            const debugDiv = document.getElementById('debugInfo');
-            debugDiv.innerHTML = message;
-            debugDiv.className = 'debug-info ' + type;
-            debugDiv.style.display = 'block';
-        }
-        
-        function loadSampleData() {
-            showDebugInfo('📱 Carregando dados de exemplo...', 'info');
+function processFile() {
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        showDebugInfo('❌ Selecione um arquivo Excel.', 'error');
+        return;
+    }
+    
+    showDebugInfo('📁 Processando arquivo...', 'info');
+    
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
             
-            const sampleData = [
-                { opm: "BTL LESTE", viatura: "VTR 1090", graduacao: "1° TEN", nome: "MARCLEUTON", local: "área comercial" },
-                { opm: "BTL LESTE", viatura: "VTR 1090", graduacao: "AL.OF", nome: "C. FARIAS", local: "área comercial" },
-                { opm: "BTL LESTE", viatura: "VTR 1062", graduacao: "AL.OF", nome: "TAINA", local: "área comercial" },
-                { opm: "BTL LESTE", viatura: "POG", graduacao: "ST", nome: "DIEGO FRANÇA", local: "Shopping São José" },
-                { opm: "4ª CICOM", viatura: "VTR 1071", graduacao: "Cb PM", nome: "REGINA", local: "área comercial" }
-            ];
+            let allData = [];
             
-            processExcelData(sampleData);
-            showDebugInfo('✅ Dashboard carregado!\n\n📱 Use dois dedos para dar zoom nos gráficos', 'success');
-        }
-        
-        // ... (todo o resto do JavaScript permanece IGUAL)
-        function processFile() {
-            const fileInput = document.getElementById('fileInput');
-            const file = fileInput.files[0];
+            workbook.SheetNames.forEach((sheetName) => {
+                const worksheet = workbook.Sheets[sheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                
+                if (jsonData.length > 1) {
+                    const processedData = processSheetData(jsonData);
+                    allData = allData.concat(processedData);
+                }
+            });
             
-            if (!file) {
-                showDebugInfo('❌ Selecione um arquivo Excel.', 'error');
+            showDebugInfo(`📊 ${allData.length} militares encontrados`, 'info');
+            
+            if (allData.length === 0) {
+                showDebugInfo('❌ Nenhum militar encontrado na planilha.', 'error');
                 return;
             }
             
-            showDebugInfo('📁 Processando arquivo...', 'info');
+            processExcelData(allData);
+            showDebugInfo(`✅ Dashboard atualizado!\n${allData.length} militares carregados`, 'success');
             
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    
-                    let allData = [];
-                    
-                    workbook.SheetNames.forEach((sheetName) => {
-                        const worksheet = workbook.Sheets[sheetName];
-                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-                        
-                        if (jsonData.length > 1) {
-                            const processedData = processSheetData(jsonData);
-                            allData = allData.concat(processedData);
-                        }
-                    });
-                    
-                    if (allData.length === 0) {
-                        showDebugInfo('❌ Nenhum dado válido.', 'error');
-                        return;
-                    }
-                    
-                    processExcelData(allData);
-                    showDebugInfo('✅ Dashboard atualizado!', 'success');
-                    
-                } catch (error) {
-                    showDebugInfo('❌ Erro: ' + error.message, 'error');
-                }
-            };
-            
-            reader.readAsArrayBuffer(file);
+        } catch (error) {
+            showDebugInfo('❌ Erro: ' + error.message, 'error');
+        }
+    };
+    
+    reader.readAsArrayBuffer(file);
+}
+
+function processSheetData(sheetData) {
+    const data = [];
+    if (sheetData.length < 2) return data;
+    
+    const headers = sheetData[0].map(h => h ? h.toString().trim() : '');
+    
+    const findColumn = (patterns) => {
+        for (let pattern of patterns) {
+            const index = headers.findIndex(header => 
+                header && header.toString().toLowerCase().includes(pattern.toLowerCase())
+            );
+            if (index !== -1) return index;
+        }
+        return -1;
+    };
+    
+    const opmIndex = findColumn(['opm', 'unidade']);
+    const viaturaIndex = findColumn(['vtr', 'viatura', 'prefixo']);
+    const graduacaoIndex = findColumn(['grad', 'graduacao', 'posto']);
+    const nomeIndex = findColumn(['nome', 'militar']);
+    const localIndex = findColumn(['local', 'área', 'area']);
+    
+    let currentOpm = '';
+    let currentViatura = '';
+    let currentLocal = '';
+    
+    for (let i = 1; i < sheetData.length; i++) {
+        const row = sheetData[i];
+        if (!row || row.length === 0) continue;
+        
+        // Pula linhas completamente vazias
+        if (row.every(cell => !cell || cell.toString().trim() === '')) continue;
+        
+        // Atualiza os valores atuais apenas se a célula não estiver vazia
+        if (opmIndex !== -1 && row[opmIndex] && row[opmIndex].toString().trim() !== '') {
+            currentOpm = row[opmIndex].toString().trim();
         }
         
-        function processSheetData(sheetData) {
-            const data = [];
-            if (sheetData.length < 2) return data;
-            
-            const headers = sheetData[0].map(h => h ? h.toString().trim() : '');
-            
-            const findColumn = (patterns) => {
-                for (let pattern of patterns) {
-                    const index = headers.findIndex(header => 
-                        header && header.toLowerCase().includes(pattern.toLowerCase())
-                    );
-                    if (index !== -1) return index;
-                }
-                return 0;
+        if (viaturaIndex !== -1 && row[viaturaIndex] && row[viaturaIndex].toString().trim() !== '') {
+            currentViatura = row[viaturaIndex].toString().trim();
+        }
+        
+        if (localIndex !== -1 && row[localIndex] && row[localIndex].toString().trim() !== '') {
+            currentLocal = row[localIndex].toString().trim();
+        }
+        
+        // Só adiciona se tiver pelo menos nome ou graduação
+        const nome = nomeIndex !== -1 ? (row[nomeIndex] || '').toString().trim() : '';
+        const graduacao = graduacaoIndex !== -1 ? (row[graduacaoIndex] || '').toString().trim() : '';
+        
+        // Filtra apenas linhas que são realmente militares
+        if (nome !== '' && graduacao !== '') {
+            const item = {
+                opm: currentOpm,
+                viatura: currentViatura,
+                graduacao: graduacao,
+                nome: nome,
+                local: currentLocal
             };
             
-            const opmIndex = findColumn(['opm', 'unidade']);
-            const viaturaIndex = findColumn(['vtr', 'viatura', 'prefixo']);
-            const graduacaoIndex = findColumn(['grad', 'graduacao', 'posto']);
-            const nomeIndex = findColumn(['nome', 'militar']);
-            const localIndex = findColumn(['local', 'área', 'area']);
-            
-            for (let i = 1; i < sheetData.length; i++) {
-                const row = sheetData[i];
-                if (!row || row.length === 0) continue;
-                
-                const item = {
-                    opm: row[opmIndex] || '',
-                    viatura: row[viaturaIndex] || '',
-                    graduacao: row[graduacaoIndex] || '',
-                    nome: row[nomeIndex] || '',
-                    local: row[localIndex] || ''
-                };
-                
-                if (item.nome || item.opm) {
-                    data.push(item);
+            data.push(item);
+        }
+    }
+    
+    return data;
+}
+
+function processExcelData(data) {
+    Object.values(currentCharts).forEach(chart => {
+        if (chart && chart.destroy) chart.destroy();
+    });
+    currentCharts = {};
+    
+    document.getElementById('total-militares').textContent = data.length;
+    
+    const unidades = [...new Set(data.map(item => item.opm))].filter(opm => opm && opm.trim() !== '');
+    document.getElementById('total-unidades').textContent = unidades.length;
+    
+    const viaturas = [...new Set(data.map(item => item.viatura))].filter(vtr => vtr && vtr.trim() !== '');
+    document.getElementById('total-viaturas').textContent = viaturas.length;
+    
+    const areas = [...new Set(data.map(item => item.local))].filter(local => local && local.trim() !== '');
+    document.getElementById('total-areas').textContent = areas.length;
+    
+    const tableBody = document.getElementById('table-body');
+    tableBody.innerHTML = '';
+    data.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${item.opm || 'N/I'}</td>
+            <td>${item.viatura || 'N/I'}</td>
+            <td>${item.graduacao || 'N/I'}</td>
+            <td>${item.nome || 'N/I'}</td>
+            <td>${item.local || 'N/I'}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+    
+    const graduacaoCount = {};
+    const unidadeCount = {};
+    const viaturaCount = {};
+    const areaCount = {};
+    
+    data.forEach(item => {
+        const grad = item.graduacao || 'Não informado';
+        graduacaoCount[grad] = (graduacaoCount[grad] || 0) + 1;
+        
+        const opm = item.opm || 'Não informado';
+        unidadeCount[opm] = (unidadeCount[opm] || 0) + 1;
+        
+        const viatura = item.viatura || 'Não informado';
+        let tipoViatura = 'Outros';
+        if (viatura.includes('VTR')) tipoViatura = 'VTR';
+        else if (viatura.includes('POG')) tipoViatura = 'POG';
+        viaturaCount[tipoViatura] = (viaturaCount[tipoViatura] || 0) + 1;
+        
+        const area = item.local || 'Não informado';
+        areaCount[area] = (areaCount[area] || 0) + 1;
+    });
+    
+    document.getElementById('dashboard-content').classList.remove('hidden');
+    createCharts(graduacaoCount, unidadeCount, viaturaCount, areaCount);
+}
+
+function createCharts(graduacaoCount, unidadeCount, viaturaCount, areaCount) {
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    boxWidth: 12,
+                    font: {
+                        size: 10
+                    }
                 }
             }
-            
-            return data;
         }
-        
-        function processExcelData(data) {
-            Object.values(currentCharts).forEach(chart => {
-                if (chart && chart.destroy) chart.destroy();
-            });
-            currentCharts = {};
-            
-            document.getElementById('total-militares').textContent = data.length;
-            
-            const unidades = [...new Set(data.map(item => item.opm))].filter(Boolean);
-            document.getElementById('total-unidades').textContent = unidades.length;
-            
-            const viaturas = [...new Set(data.map(item => item.viatura))].filter(Boolean);
-            document.getElementById('total-viaturas').textContent = viaturas.length;
-            
-            const areas = [...new Set(data.map(item => item.local))].filter(Boolean);
-            document.getElementById('total-areas').textContent = areas.length;
-            
-            const tableBody = document.getElementById('table-body');
-            tableBody.innerHTML = '';
-            data.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${item.opm || 'N/I'}</td>
-                    <td>${item.viatura || 'N/I'}</td>
-                    <td>${item.graduacao || 'N/I'}</td>
-                    <td>${item.nome || 'N/I'}</td>
-                    <td>${item.local || 'N/I'}</td>
-                `;
-                tableBody.appendChild(row);
-            });
-            
-            const graduacaoCount = {};
-            const unidadeCount = {};
-            const viaturaCount = {};
-            const areaCount = {};
-            
-            data.forEach(item => {
-                const grad = item.graduacao || 'Não informado';
-                graduacaoCount[grad] = (graduacaoCount[grad] || 0) + 1;
-                
-                const opm = item.opm || 'Não informado';
-                unidadeCount[opm] = (unidadeCount[opm] || 0) + 1;
-                
-                const viatura = item.viatura || 'Não informado';
-                let tipoViatura = 'Outros';
-                if (viatura.includes('VTR')) tipoViatura = 'VTR';
-                else if (viatura.includes('POG')) tipoViatura = 'POG';
-                viaturaCount[tipoViatura] = (viaturaCount[tipoViatura] || 0) + 1;
-                
-                const area = item.local || 'Não informado';
-                areaCount[area] = (areaCount[area] || 0) + 1;
-            });
-            
-            document.getElementById('dashboard-content').classList.remove('hidden');
-            createCharts(graduacaoCount, unidadeCount, viaturaCount, areaCount);
+    };
+    
+    const ctx1 = document.getElementById('graduacaoChart').getContext('2d');
+    currentCharts.graduacao = new Chart(ctx1, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(graduacaoCount),
+            datasets: [{
+                data: Object.values(graduacaoCount),
+                backgroundColor: ['#1a3d7c', '#2a9d8f', '#e63946', '#f4a261', '#e9c46a'],
+                borderWidth: 1
+            }]
+        },
+        options: chartOptions
+    });
+    
+    const ctx2 = document.getElementById('unidadeChart').getContext('2d');
+    currentCharts.unidade = new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(unidadeCount),
+            datasets: [{
+                label: 'Militares',
+                data: Object.values(unidadeCount),
+                backgroundColor: '#1a3d7c'
+            }]
+        },
+        options: {
+            ...chartOptions,
+            scales: {
+                y: { 
+                    beginAtZero: true, 
+                    ticks: { stepSize: 1 } 
+                }
+            }
         }
-        
-        function createCharts(graduacaoCount, unidadeCount, viaturaCount, areaCount) {
-            // Gráficos com configuração responsiva
-            const chartOptions = {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            boxWidth: 12,
-                            font: {
-                                size: 10
-                            }
-                        }
-                    }
+    });
+    
+    const ctx3 = document.getElementById('viaturaChart').getContext('2d');
+    currentCharts.viatura = new Chart(ctx3, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(viaturaCount),
+            datasets: [{
+                data: Object.values(viaturaCount),
+                backgroundColor: ['#1a3d7c', '#e63946', '#2a9d8f']
+            }]
+        },
+        options: chartOptions
+    });
+    
+    const ctx4 = document.getElementById('areaChart').getContext('2d');
+    currentCharts.area = new Chart(ctx4, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(areaCount).slice(0, 8),
+            datasets: [{
+                label: 'Militares',
+                data: Object.values(areaCount).slice(0, 8),
+                backgroundColor: '#2a9d8f'
+            }]
+        },
+        options: {
+            ...chartOptions,
+            indexAxis: 'y',
+            scales: {
+                x: { 
+                    beginAtZero: true, 
+                    ticks: { stepSize: 1 } 
                 }
-            };
-            
-            const ctx1 = document.getElementById('graduacaoChart').getContext('2d');
-            currentCharts.graduacao = new Chart(ctx1, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(graduacaoCount),
-                    datasets: [{
-                        data: Object.values(graduacaoCount),
-                        backgroundColor: ['#1a3d7c', '#2a9d8f', '#e63946', '#f4a261', '#e9c46a'],
-                        borderWidth: 1
-                    }]
-                },
-                options: chartOptions
-            });
-            
-            const ctx2 = document.getElementById('unidadeChart').getContext('2d');
-            currentCharts.unidade = new Chart(ctx2, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(unidadeCount),
-                    datasets: [{
-                        label: 'Militares',
-                        data: Object.values(unidadeCount),
-                        backgroundColor: '#1a3d7c'
-                    }]
-                },
-                options: {
-                    ...chartOptions,
-                    scales: {
-                        y: { 
-                            beginAtZero: true, 
-                            ticks: { stepSize: 1 } 
-                        }
-                    }
-                }
-            });
-            
-            const ctx3 = document.getElementById('viaturaChart').getContext('2d');
-            currentCharts.viatura = new Chart(ctx3, {
-                type: 'pie',
-                data: {
-                    labels: Object.keys(viaturaCount),
-                    datasets: [{
-                        data: Object.values(viaturaCount),
-                        backgroundColor: ['#1a3d7c', '#e63946', '#2a9d8f']
-                    }]
-                },
-                options: chartOptions
-            });
-            
-            const ctx4 = document.getElementById('areaChart').getContext('2d');
-            currentCharts.area = new Chart(ctx4, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(areaCount).slice(0, 8), // Limita para mobile
-                    datasets: [{
-                        label: 'Militares',
-                        data: Object.values(areaCount).slice(0, 8),
-                        backgroundColor: '#2a9d8f'
-                    }]
-                },
-                options: {
-                    ...chartOptions,
-                    indexAxis: 'y',
-                    scales: {
-                        x: { 
-                            beginAtZero: true, 
-                            ticks: { stepSize: 1 } 
-                        }
-                    }
-                }
-            });
+            }
         }
-        
-        // Inicialização para mobile
-        window.onload = function() {
-            showDebugInfo('📱 Dashboard Operação Natal - Versão Mobile\n\n💡 Dica: Use dois dedos para zoom nos gráficos', 'info');
-        };
-    </script>
-</body>
-</html>
+    });
+}
+
+// Inicialização para mobile
+window.onload = function() {
+    showDebugInfo('📱 Dashboard Operação Natal - Versão Mobile\n\n💡 Dica: Use dois dedos para zoom nos gráficos', 'info');
+};
