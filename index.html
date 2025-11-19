@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Operação Natal - Batalhão Leste</title>
+    <title>Operação Natal do Batalhão Leste</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
@@ -15,7 +15,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
             min-height: 100vh;
             padding: 15px;
         }
@@ -466,7 +466,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎄 Operação Natal - Batalhão Leste</h1>
+            <h1>🎄 Operação Natal do Batalhão Leste</h1>
             <div class="subtitle" id="currentDate">Monitoramento Operacional em Tempo Real</div>
             
             <div class="controls">
@@ -570,7 +570,7 @@
         </div>
 
         <div class="footer">
-            <p>📊 Operação Natal - Batalhão Leste | <span id="updateTime"></span></p>
+            <p>📊 Operação Natal do Batalhão Leste | <span id="updateTime"></span></p>
             <p>🔄 Atualização automática | Desenvolvido para monitoramento em tempo real</p>
         </div>
     </div>
@@ -647,29 +647,31 @@
                 now.toLocaleDateString('pt-BR', options);
         }
 
-        // Processar dados do Excel
+        // Processar dados do Excel - FUNÇÃO CORRIGIDA
         function processExcelData(data) {
             try {
                 showLoading(true);
                 
-                // Pequeno delay para garantir que o loading seja mostrado
-                setTimeout(() => {
-                    currentData = data.filter(row => 
-                        row.OPM && row.Viatura && row.Graduacao && row.Nome && row.Local
-                    );
-                    
-                    if (currentData.length === 0) {
-                        throw new Error('Nenhum dado válido encontrado na planilha');
-                    }
-                    
-                    // Atualizar o dashboard imediatamente após processar os dados
-                    updateDashboard();
-                    showAlert(`✅ Dados carregados com sucesso! ${currentData.length} registros processados.`);
-                    showLoading(false);
-                    
-                }, 100);
+                console.log('Dados recebidos do Excel:', data);
+                
+                // Processamento imediato sem timeout
+                currentData = data.filter(row => 
+                    row.OPM && row.Viatura && row.Graduacao && row.Nome && row.Local
+                );
+                
+                console.log('Dados filtrados:', currentData);
+                
+                if (currentData.length === 0) {
+                    throw new Error('Nenhum dado válido encontrado na planilha. Verifique se as colunas estão nomeadas corretamente.');
+                }
+                
+                // Atualizar o dashboard imediatamente
+                updateDashboard();
+                showAlert(`✅ Dados carregados com sucesso! ${currentData.length} registros processados.`);
+                showLoading(false);
                 
             } catch (error) {
+                console.error('Erro no processamento:', error);
                 showAlert(`❌ Erro ao processar dados: ${error.message}`, 'error');
                 showLoading(false);
             }
@@ -711,7 +713,7 @@
             return { opmCount, gradCount, localCount };
         }
 
-        // Atualizar dashboard
+        // Atualizar dashboard - FUNÇÃO PRINCIPAL
         function updateDashboard() {
             console.log('Atualizando dashboard...', currentData.length, 'registros');
             
@@ -953,46 +955,37 @@
                 `Última atualização: ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR')}`;
         }
 
-        // Event Listener para upload de arquivo
+        // Event Listener para upload de arquivo - CORRIGIDO
         document.getElementById('fileInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
             
+            console.log('Arquivo selecionado:', file.name);
+            
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
+                    console.log('Lendo arquivo...');
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
+                    console.log('Planilhas disponíveis:', workbook.SheetNames);
+                    
                     const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                     const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                    console.log('Dados convertidos para JSON:', jsonData);
                     
                     // Processar os dados - isso vai automaticamente atualizar o dashboard
                     processExcelData(jsonData);
                     
                 } catch (error) {
+                    console.error('Erro na leitura do arquivo:', error);
                     showAlert('❌ Erro ao ler arquivo: ' + error.message, 'error');
                     showLoading(false);
                 }
             };
             
             reader.onerror = function() {
+                console.error('Erro no FileReader');
                 showAlert('❌ Erro ao ler o arquivo selecionado', 'error');
                 showLoading(false);
-            };
-            
-            reader.readAsArrayBuffer(file);
-            
-            // Limpar input para permitir carregar o mesmo arquivo novamente
-            e.target.value = '';
-        });
-
-        // Inicialização
-        document.addEventListener('DOMContentLoaded', function() {
-            updateCurrentDate(); // Atualiza a data no header
-            updateDateTime(); // Atualiza a data/hora no footer
-            setInterval(updateDateTime, 60000);
-            loadSampleData(); // Carrega dados de exemplo automaticamente
-        });
-    </script>
-</body>
-</html>
+           
